@@ -4,6 +4,7 @@ import javax.annotation.PreDestroy;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableMBeanExport;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
@@ -17,6 +18,7 @@ import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.process.runtime.Network;
 
 @Configuration
+@EnableMBeanExport
 public class MigraMongoTestConfig {
 
     public static final String MIGRAMONGO_TEST_DB = "migraMongoTestDB";
