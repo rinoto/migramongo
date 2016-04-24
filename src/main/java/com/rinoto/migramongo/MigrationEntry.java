@@ -4,6 +4,7 @@ import java.util.Date;
 
 public class MigrationEntry {
 
+	public String id;
 	public String module;
 	public String info;
 	public String fromVersion;

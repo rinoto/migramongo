@@ -4,8 +4,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,6 +32,7 @@ public class MigraMongo {
 	}
 
 	public MigraMongoStatus migrate() {
+		final MigraMongoStatus status = MigraMongoStatus.ok();
 		MigrationEntry lastMigrationApplied = getLastMigrationApplied();
 		if (lastMigrationApplied == null) {
 			final Object initialMigrationScript = getInitialMigrationScript();
@@ -37,8 +41,11 @@ public class MigraMongo {
 						"no last migration script found, and no initial migration script provided!");
 			}
 			lastMigrationApplied = executeInitialMigrationScript(initialMigrationScript);
+			status.addEntry(lastMigrationApplied);
 		}
-		return MigraMongoStatus.OK;
+		getMigrationScriptsToApply(lastMigrationApplied.toVersion);
+
+		return status;
 	}
 
 	private MigrationEntry executeInitialMigrationScript(Object initialMigrationScript) {
@@ -69,6 +76,7 @@ public class MigraMongo {
 		final Document document = mapMigEntryToDocument(migEntry);
 		// TODO - where is the _id???
 		getMigramongoCollection().insertOne(document);
+		migEntry.id = document.getString("_id");
 		return migEntry;
 
 	}
@@ -131,6 +139,7 @@ public class MigraMongo {
 			return null;
 		}
 		final MigrationEntry migEntry = new MigrationEntry();
+		migEntry.id = doc.getString("_id");
 		migEntry.fromVersion = doc.getString("fromVersion");
 		migEntry.toVersion = doc.getString("toVersion");
 		migEntry.createdAt = doc.getDate("createdAt");
@@ -143,6 +152,7 @@ public class MigraMongo {
 
 	private Document mapMigEntryToDocument(MigrationEntry migEntry) {
 		final Document doc = new Document();
+		doc.put("_id", migEntry.id);
 		doc.put("fromVersion", migEntry.fromVersion);
 		doc.put("toVersion", migEntry.toVersion);
 		doc.put("createdAt", migEntry.createdAt);
@@ -153,8 +163,22 @@ public class MigraMongo {
 		return doc;
 	}
 
-	public Collection<Object> getMigrationScripts() {
-		return appContext.getBeansWithAnnotation(MongoMigrationScript.class).values();
+	public List<Object> getMigrationScriptsToApply(String version) {
+		final Collection<Object> migScripts = appContext.getBeansWithAnnotation(MongoMigrationScript.class).values();
+		final Map<MongoMigrationScript, Object> migAnnotationObjectMap = migScripts.stream().map(migScript -> {
+			final MongoMigrationScript migAnnotation = migScript.getClass().getAnnotation(MongoMigrationScript.class);
+			return new SimpleEntry<MongoMigrationScript, Object>(migAnnotation, migScript);
+		}).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+		final List<Object> migScriptsToApply = findMigScriptsToApply(version, migAnnotationObjectMap);
+	}
+
+	private List<Object> findMigScriptsToApply(String version, Map<MongoMigrationScript, Object> migAnnotationObjectMap) {
+		if (migAnnotationObjectMap.isEmpty()) {
+			return new ArrayList<>();
+		}
+		//finding a script with fromVersion = version
+		migAnnotationObjectMap.keySet().stream().filter(predicate)
+		return null;
 	}
 
 	public Object getInitialMigrationScript() {
