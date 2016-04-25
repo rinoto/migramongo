@@ -4,11 +4,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,7 +33,7 @@ public class MigraMongo {
 		final MigraMongoStatus status = MigraMongoStatus.ok();
 		MigrationEntry lastMigrationApplied = getLastMigrationApplied();
 		if (lastMigrationApplied == null) {
-			final Object initialMigrationScript = getInitialMigrationScript();
+			final MongoMigrScript initialMigrationScript = getInitialMigrationScript();
 			if (initialMigrationScript == null) {
 				return new MigraMongoStatus("ERROR",
 						"no last migration script found, and no initial migration script provided!");
@@ -56,13 +54,17 @@ public class MigraMongo {
 					+ initialMigrationScript.getClass().getName()
 					+ " doesn't have an InitialMongoMigrationScript annotation!");
 		}
-		final Method method = getMigrationMethod(initialMigrationScript);
 		try {
-			executeMethod(method, initialMigrationScript);
+			executeMigrationScriptMethod(initialMigrationScript);
 			return setInitialVersionInMigrationCollection(annotation, null);
 		} catch (Exception e) {
 			return setInitialVersionInMigrationCollection(annotation, e);
 		}
+	}
+
+	private void executeMigrationScriptMethod(Object migrationScriptObject) {
+		final Method method = getMigrationMethod(migrationScriptObject);
+		executeMethod(method, migrationScriptObject);
 	}
 
 	private MigrationEntry setInitialVersionInMigrationCollection(InitialMongoMigrationScript annotation, Exception e) {
@@ -103,17 +105,17 @@ public class MigraMongo {
 		}
 	}
 
-	private Method getMigrationMethod(Object initialMigrationScript) {
-		final Method[] methods = initialMigrationScript.getClass().getDeclaredMethods();
+	private Method getMigrationMethod(Object migrationScriptObject) {
+		final Method[] methods = migrationScriptObject.getClass().getDeclaredMethods();
 		final List<Method> publicMethods = Stream.of(methods).filter(m -> Modifier.isPublic(m.getModifiers()))
 				.collect(Collectors.toList());
 		if (publicMethods.isEmpty()) {
-			throw new IllegalStateException("MigrationScript " + initialMigrationScript + " of class "
-					+ initialMigrationScript.getClass().getName() + " doesn't have any public method!");
+			throw new IllegalStateException("MigrationScript " + migrationScriptObject + " of class "
+					+ migrationScriptObject.getClass().getName() + " doesn't have any public method!");
 		}
 		if (publicMethods.size() > 1) {
-			throw new IllegalStateException("MigrationScript " + initialMigrationScript + " of class "
-					+ initialMigrationScript.getClass().getName() + " has " + publicMethods.size()
+			throw new IllegalStateException("MigrationScript " + migrationScriptObject + " of class "
+					+ migrationScriptObject.getClass().getName() + " has " + publicMethods.size()
 					+ " public methods, but it should have only 1");
 
 		}
@@ -163,26 +165,51 @@ public class MigraMongo {
 		return doc;
 	}
 
-	public List<Object> getMigrationScriptsToApply(String version) {
-		final Collection<Object> migScripts = appContext.getBeansWithAnnotation(MongoMigrationScript.class).values();
-		final Map<MongoMigrationScript, Object> migAnnotationObjectMap = migScripts.stream().map(migScript -> {
-			final MongoMigrationScript migAnnotation = migScript.getClass().getAnnotation(MongoMigrationScript.class);
-			return new SimpleEntry<MongoMigrationScript, Object>(migAnnotation, migScript);
-		}).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-		final List<Object> migScriptsToApply = findMigScriptsToApply(version, migAnnotationObjectMap);
+	public List<MigrationScript> getMigrationScriptsToApply(String version) {
+		// final Collection<Object> migScripts =
+		// appContext.getBeansWithAnnotation(MongoMigrationScript.class).values();
+		final Collection<MongoMigrScript> migScripts = appContext.getBeansOfType(MongoMigrScript.class).values()
+				.stream().filter(ms -> !InitialMongoMigrScript.class.isInstance(ms)).collect(Collectors.toList());
+		// final List<MigrationScript> allMigrationScripts = migScripts.stream()
+		// .map(migScript -> new
+		// MigrationScript(migScript)).collect(Collectors.toList());
+
+		// }).collect(Collectors.toList());
+		final List<MigrationScript> migScriptsToApply = findMigScriptsToApply(version, migScripts);
+		return migScriptsToApply;
 	}
 
-	private List<Object> findMigScriptsToApply(String version, Map<MongoMigrationScript, Object> migAnnotationObjectMap) {
-		if (migAnnotationObjectMap.isEmpty()) {
+	private List<MigrationScript> findMigScriptsToApply(String version, Collection<MongoMigrScript> allMigrationScripts) {
+		if (allMigrationScripts.isEmpty()) {
 			return new ArrayList<>();
 		}
-		//finding a script with fromVersion = version
-		migAnnotationObjectMap.keySet().stream().filter(predicate)
-		return null;
+		final List<MongoMigrScript> candidates = new ArrayList<>();
+		final List<MongoMigrScript> rest = new ArrayList<>();
+		for (MongoMigrScript ms : allMigrationScripts) {
+			if (ms.getMigrationInfo().getFromVersion().equals("version")) {
+				candidates.add(ms);
+			} else {
+				rest.add(ms);
+			}
+		}
+		if (candidates.isEmpty()) {
+			return new ArrayList<>();
+		}
+		if (candidates.size() > 1) {
+			throw new IllegalStateException("There is more than one script with fromVersion " + version + ": "
+					+ allMigrationScripts);
+		}
+		final MongoMigrScript nextMigrationScript = candidates.get(0);
+		final List<MigrationScript> nextMigScriptsRec = findMigScriptsToApply(nextMigrationScript.getMigrationInfo()
+				.getToVersion(), rest);
+		nextMigScriptsRec.add(nextMigrationScript);
+		return nextMigScripts;
 	}
 
-	public Object getInitialMigrationScript() {
-		final Collection<Object> values = appContext.getBeansWithAnnotation(InitialMongoMigrationScript.class).values();
+	public MongoMigrScript getInitialMigrationScript() {
+		// final Collection<Object> values =
+		// appContext.getBeansWithAnnotation(InitialMongoMigrationScript.class).values();
+		Collection<InitialMongoMigrScript> values = appContext.getBeansOfType(InitialMongoMigrScript.class).values();
 		if (values.isEmpty()) {
 			return null;
 		}
@@ -193,7 +220,27 @@ public class MigraMongo {
 		return values.iterator().next();
 	}
 
-	public void applyMigration(Object migrationObject) {
+	public void applyMigration(MigrationScript migrationObject) {
+
+	}
+
+	public class MigrationScript {
+
+		private final MongoMigrationScript mongoMigrationScript;
+		private final Object migScriptObject;
+
+		MigrationScript(Object migScriptObject) {
+			this.migScriptObject = migScriptObject;
+			this.mongoMigrationScript = migScriptObject.getClass().getAnnotation(MongoMigrationScript.class);
+		}
+
+		MongoMigrationScript getMigrationInfo() {
+			return mongoMigrationScript;
+		}
+
+		void migrate() {
+			executeMigrationScriptMethod(migScriptObject);
+		}
 
 	}
 
