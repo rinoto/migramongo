@@ -1,4 +1,4 @@
-package com.rinoto.migramongo;
+package com.rinoto.migramongo.spring;
 
 import javax.annotation.PreDestroy;
 
@@ -10,7 +10,8 @@ import org.springframework.context.annotation.EnableMBeanExport;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
-import com.rinoto.migramongo.lookup.SpringScriptLookupService;
+import com.rinoto.migramongo.MigraMongo;
+import com.rinoto.migramongo.spring.SpringScriptLookupService;
 
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
@@ -22,7 +23,7 @@ import de.flapdoodle.embed.process.runtime.Network;
 
 @Configuration
 @EnableMBeanExport
-public class MigraMongoTestConfig {
+public class MigraMongoSpringTestConfig {
 
     public static final String MIGRAMONGO_TEST_DB = "migraMongoTestDB";
 

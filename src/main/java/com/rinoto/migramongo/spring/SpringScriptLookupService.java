@@ -1,12 +1,13 @@
-package com.rinoto.migramongo.lookup;
+package com.rinoto.migramongo.spring;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationContext;
 
-import com.rinoto.migramongo.InitialMongoMigrScript;
-import com.rinoto.migramongo.MongoMigrScript;
+import com.rinoto.migramongo.InitialMongoMigrationScript;
+import com.rinoto.migramongo.MongoMigrationScript;
+import com.rinoto.migramongo.ScriptLookupService;
 
 public class SpringScriptLookupService implements ScriptLookupService {
 
@@ -17,10 +18,10 @@ public class SpringScriptLookupService implements ScriptLookupService {
     }
 
     @Override
-    public InitialMongoMigrScript findInitialScript() {
+    public InitialMongoMigrationScript findInitialScript() {
         // final Collection<Object> values =
         // appContext.getBeansWithAnnotation(InitialMongoMigrationScript.class).values();
-        Collection<InitialMongoMigrScript> values = appContext.getBeansOfType(InitialMongoMigrScript.class).values();
+        Collection<InitialMongoMigrationScript> values = appContext.getBeansOfType(InitialMongoMigrationScript.class).values();
         if (values.isEmpty()) {
             return null;
         }
@@ -34,12 +35,12 @@ public class SpringScriptLookupService implements ScriptLookupService {
     }
 
     @Override
-    public Collection<MongoMigrScript> findMongoScripts() {
-        final Collection<MongoMigrScript> migScripts = appContext
-            .getBeansOfType(MongoMigrScript.class)
+    public Collection<MongoMigrationScript> findMongoScripts() {
+        final Collection<MongoMigrationScript> migScripts = appContext
+            .getBeansOfType(MongoMigrationScript.class)
             .values()
             .stream()
-            .filter(ms -> !InitialMongoMigrScript.class.isInstance(ms))
+            .filter(ms -> !InitialMongoMigrationScript.class.isInstance(ms))
             .collect(Collectors.toList());
         return migScripts;
     }

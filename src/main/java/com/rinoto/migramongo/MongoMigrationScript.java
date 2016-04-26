@@ -2,7 +2,7 @@ package com.rinoto.migramongo;
 
 import com.mongodb.client.MongoDatabase;
 
-public interface MongoMigrScript {
+public interface MongoMigrationScript {
 
     MigrationInfo getMigrationInfo();
 

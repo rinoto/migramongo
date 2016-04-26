@@ -1,6 +1,6 @@
 package com.rinoto.migramongo;
 
-public interface InitialMongoMigrScript extends MongoMigrScript {
+public interface InitialMongoMigrationScript extends MongoMigrationScript {
 
 	InitialMigrationInfo getMigrationInfo();
 

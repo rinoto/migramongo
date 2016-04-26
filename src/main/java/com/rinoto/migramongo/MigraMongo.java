@@ -11,7 +11,6 @@ import org.bson.Document;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.rinoto.migramongo.lookup.ScriptLookupService;
 
 public class MigraMongo {
 
@@ -28,7 +27,7 @@ public class MigraMongo {
         final MigraMongoStatus status = MigraMongoStatus.ok();
         MigrationEntry lastMigrationApplied = getLastMigrationApplied();
         if (lastMigrationApplied == null) {
-            final InitialMongoMigrScript initialMigrationScript = scriptLookupService.findInitialScript();
+            final InitialMongoMigrationScript initialMigrationScript = scriptLookupService.findInitialScript();
             if (initialMigrationScript == null) {
                 return new MigraMongoStatus(
                     "ERROR",
@@ -37,7 +36,7 @@ public class MigraMongo {
             lastMigrationApplied = executeMigrationScript(initialMigrationScript);
             status.addEntry(lastMigrationApplied);
         }
-        final List<MongoMigrScript> migrationScriptsToApply = getMigrationScriptsToApply(lastMigrationApplied.toVersion);
+        final List<MongoMigrationScript> migrationScriptsToApply = getMigrationScriptsToApply(lastMigrationApplied.toVersion);
         migrationScriptsToApply.forEach(ms -> {
             final MigrationEntry migEntry = executeMigrationScript(ms);
             status.addEntry(migEntry);
@@ -46,7 +45,7 @@ public class MigraMongo {
         return status;
     }
 
-    private MigrationEntry executeMigrationScript(MongoMigrScript migrationScript) {
+    private MigrationEntry executeMigrationScript(MongoMigrationScript migrationScript) {
         final MigrationEntry migrationEntry = insertMigrationStatusInProgress(migrationScript.getMigrationInfo());
         try {
             migrationScript.migrate(database);
@@ -140,19 +139,19 @@ public class MigraMongo {
         return doc;
     }
 
-    public List<MongoMigrScript> getMigrationScriptsToApply(String version) {
-        final Collection<MongoMigrScript> migScripts = scriptLookupService.findMongoScripts();
-        final List<MongoMigrScript> migScriptsToApply = findMigScriptsToApply(version, migScripts);
+    public List<MongoMigrationScript> getMigrationScriptsToApply(String version) {
+        final Collection<MongoMigrationScript> migScripts = scriptLookupService.findMongoScripts();
+        final List<MongoMigrationScript> migScriptsToApply = findMigScriptsToApply(version, migScripts);
         return migScriptsToApply;
     }
 
-    private List<MongoMigrScript> findMigScriptsToApply(String version, Collection<MongoMigrScript> allMigrationScripts) {
+    private List<MongoMigrationScript> findMigScriptsToApply(String version, Collection<MongoMigrationScript> allMigrationScripts) {
         if (allMigrationScripts.isEmpty()) {
             return new ArrayList<>();
         }
-        final List<MongoMigrScript> candidates = new ArrayList<>();
-        final List<MongoMigrScript> rest = new ArrayList<>();
-        for (MongoMigrScript ms : allMigrationScripts) {
+        final List<MongoMigrationScript> candidates = new ArrayList<>();
+        final List<MongoMigrationScript> rest = new ArrayList<>();
+        for (MongoMigrationScript ms : allMigrationScripts) {
             if (ms.getMigrationInfo().getFromVersion().equals(version)) {
                 candidates.add(ms);
             } else {
@@ -168,8 +167,8 @@ public class MigraMongo {
                 ": " +
                 allMigrationScripts);
         }
-        final MongoMigrScript nextMigrationScript = candidates.get(0);
-        final List<MongoMigrScript> nextMigScriptsRec = findMigScriptsToApply(nextMigrationScript
+        final MongoMigrationScript nextMigrationScript = candidates.get(0);
+        final List<MongoMigrationScript> nextMigScriptsRec = findMigScriptsToApply(nextMigrationScript
             .getMigrationInfo()
             .getToVersion(), rest);
         candidates.addAll(nextMigScriptsRec);
