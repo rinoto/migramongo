@@ -1,9 +1,11 @@
 package com.rinoto.migramongo;
 
+import com.mongodb.client.MongoDatabase;
+
 public interface MongoMigrScript {
 
-	MigrationInfo getMigrationInfo();
+    MigrationInfo getMigrationInfo();
 
-	void migrate();
+    void migrate(MongoDatabase database);
 
 }
