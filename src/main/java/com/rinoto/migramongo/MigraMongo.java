@@ -1,31 +1,30 @@
 package com.rinoto.migramongo;
 
-import static com.mongodb.client.model.Filters.eq;
-
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 
-import org.bson.Document;
-
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.rinoto.migramongo.dao.MigrationEntryService;
 
 public class MigraMongo {
 
-    private static final String MIGRAMONGO_COLLECTION = "_migramongo";
-    private final MongoDatabase database;
     private final ScriptLookupService scriptLookupService;
+    private final MigrationEntryService migrationEntryService;
+    private MongoDatabase database;
 
-    public MigraMongo(MongoDatabase database, ScriptLookupService scriptLookupService) {
+    public MigraMongo(
+            MongoDatabase database,
+            MigrationEntryService migrationEntryService,
+            ScriptLookupService scriptLookupService) {
         this.database = database;
+        this.migrationEntryService = migrationEntryService;
         this.scriptLookupService = scriptLookupService;
     }
 
     public MigraMongoStatus migrate() {
         final MigraMongoStatus status = MigraMongoStatus.ok();
-        MigrationEntry lastMigrationApplied = getLastMigrationApplied();
+        MigrationEntry lastMigrationApplied = migrationEntryService.getLastMigrationApplied();
         if (lastMigrationApplied == null) {
             final InitialMongoMigrationScript initialMigrationScript = scriptLookupService.findInitialScript();
             if (initialMigrationScript == null) {
@@ -46,97 +45,14 @@ public class MigraMongo {
     }
 
     private MigrationEntry executeMigrationScript(MongoMigrationScript migrationScript) {
-        final MigrationEntry migrationEntry = insertMigrationStatusInProgress(migrationScript.getMigrationInfo());
+        final MigrationEntry migrationEntry = migrationEntryService.insertMigrationStatusInProgress(migrationScript
+            .getMigrationInfo());
         try {
             migrationScript.migrate(database);
-            return setMigrationStatusToFinished(migrationEntry);
+            return migrationEntryService.setMigrationStatusToFinished(migrationEntry);
         } catch (Exception e) {
-            return setMigrationStatusToFailed(migrationEntry, e);
+            return migrationEntryService.setMigrationStatusToFailed(migrationEntry, e);
         }
-    }
-
-    private MigrationEntry setMigrationStatusToFailed(MigrationEntry migrationEntry, Exception e) {
-        migrationEntry.status = "ERROR";
-        migrationEntry.statusMessage = e.getMessage();
-        return insertMigrationEntry(migrationEntry);
-    }
-
-    private MigrationEntry setMigrationStatusToFinished(MigrationEntry migrationEntry) {
-        migrationEntry.status = "OK";
-        return insertMigrationEntry(migrationEntry);
-    }
-
-    private MigrationEntry insertMigrationStatusInProgress(MigrationInfo migrationInfo) {
-        final MigrationEntry migEntry = new MigrationEntry();
-        migEntry.module = migrationInfo.getModule();
-        migEntry.status = "IN_PROGRESS";
-        migEntry.fromVersion = migrationInfo.getFromVersion();
-        migEntry.toVersion = migrationInfo.getToVersion();
-        migEntry.info = migrationInfo.getInfo();
-        migEntry.createdAt = new Date();
-
-        return insertMigrationEntry(migEntry);
-
-    }
-
-    private MigrationEntry insertMigrationEntry(MigrationEntry migEntry) {
-
-        migEntry.updatedAt = new Date();
-
-        final Document document = mapMigEntryToDocument(migEntry);
-        if (migEntry.id == null) {
-            getMigramongoCollection().insertOne(document);
-            migEntry.id = document.getObjectId("_id");
-        } else {
-            getMigramongoCollection().replaceOne(eq("_id", migEntry.id), document);
-        }
-        return migEntry;
-    }
-
-    public MongoCollection<Document> getMigramongoCollection() {
-        MongoCollection<Document> collection = this.database.getCollection(MIGRAMONGO_COLLECTION);
-        if (collection == null) {
-            this.database.createCollection(MIGRAMONGO_COLLECTION);
-            collection = this.database.getCollection(MIGRAMONGO_COLLECTION);
-        }
-        return collection;
-    }
-
-    public MigrationEntry getLastMigrationApplied() {
-        final Document doc = getMigramongoCollection().find().sort(new Document("createdAt", 1)).first();
-        return mapMigrationEntry(doc);
-    }
-
-    private MigrationEntry mapMigrationEntry(Document doc) {
-        if (doc == null) {
-            return null;
-        }
-        final MigrationEntry migEntry = new MigrationEntry();
-        migEntry.id = doc.getObjectId("_id");
-        migEntry.fromVersion = doc.getString("fromVersion");
-        migEntry.toVersion = doc.getString("toVersion");
-        migEntry.createdAt = doc.getDate("createdAt");
-        migEntry.module = doc.getString("module");
-        migEntry.info = doc.getString("info");
-        migEntry.status = doc.getString("status");
-        migEntry.statusMessage = doc.getString("statusMessage");
-        return migEntry;
-    }
-
-    private Document mapMigEntryToDocument(MigrationEntry migEntry) {
-        final Document doc = new Document();
-        if (migEntry.id != null) {
-            doc.put("_id", migEntry.id);
-        }
-        doc.put("fromVersion", migEntry.fromVersion);
-        doc.put("toVersion", migEntry.toVersion);
-        doc.put("createdAt", migEntry.createdAt);
-        doc.put("updatedAt", migEntry.updatedAt);
-        doc.put("module", migEntry.module);
-        doc.put("info", migEntry.info);
-        doc.put("status", migEntry.status);
-        doc.put("statusMessage", migEntry.statusMessage);
-        return doc;
     }
 
     public List<MongoMigrationScript> getMigrationScriptsToApply(String version) {
@@ -145,7 +61,9 @@ public class MigraMongo {
         return migScriptsToApply;
     }
 
-    private List<MongoMigrationScript> findMigScriptsToApply(String version, Collection<MongoMigrationScript> allMigrationScripts) {
+    private List<MongoMigrationScript> findMigScriptsToApply(
+            String version,
+            Collection<MongoMigrationScript> allMigrationScripts) {
         if (allMigrationScripts.isEmpty()) {
             return new ArrayList<>();
         }

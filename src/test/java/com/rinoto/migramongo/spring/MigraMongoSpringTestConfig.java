@@ -11,7 +11,6 @@ import org.springframework.context.annotation.EnableMBeanExport;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongo;
-import com.rinoto.migramongo.spring.SpringScriptLookupService;
 
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
@@ -48,7 +47,7 @@ public class MigraMongoSpringTestConfig {
 
     @Bean
     public MigraMongo migraMongo() throws Exception {
-        return new MigraMongo(mongoDatabase(), new SpringScriptLookupService(appContext));
+        return new SpringMigraMongo(appContext, mongoDatabase());
     }
 
     @PreDestroy
