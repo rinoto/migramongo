@@ -6,32 +6,29 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.bson.Document;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.rinoto.migramongo.lookup.ScriptLookupService;
 
 public class MigraMongo {
 
     private static final String MIGRAMONGO_COLLECTION = "_migramongo";
     private final MongoDatabase database;
+    private final ScriptLookupService scriptLookupService;
 
-    @Autowired
-    private ApplicationContext appContext;
-
-    public MigraMongo(MongoDatabase database) {
+    public MigraMongo(MongoDatabase database, ScriptLookupService scriptLookupService) {
         this.database = database;
+        this.scriptLookupService = scriptLookupService;
     }
 
     public MigraMongoStatus migrate() {
         final MigraMongoStatus status = MigraMongoStatus.ok();
         MigrationEntry lastMigrationApplied = getLastMigrationApplied();
         if (lastMigrationApplied == null) {
-            final MongoMigrScript initialMigrationScript = getInitialMigrationScript();
+            final InitialMongoMigrScript initialMigrationScript = scriptLookupService.findInitialScript();
             if (initialMigrationScript == null) {
                 return new MigraMongoStatus(
                     "ERROR",
@@ -40,8 +37,7 @@ public class MigraMongo {
             lastMigrationApplied = executeMigrationScript(initialMigrationScript);
             status.addEntry(lastMigrationApplied);
         }
-        final List<MongoMigrScript> migrationScriptsToApply = getMigrationScriptsToApply(
-            lastMigrationApplied.toVersion);
+        final List<MongoMigrScript> migrationScriptsToApply = getMigrationScriptsToApply(lastMigrationApplied.toVersion);
         migrationScriptsToApply.forEach(ms -> {
             final MigrationEntry migEntry = executeMigrationScript(ms);
             status.addEntry(migEntry);
@@ -145,26 +141,12 @@ public class MigraMongo {
     }
 
     public List<MongoMigrScript> getMigrationScriptsToApply(String version) {
-        // final Collection<Object> migScripts =
-        // appContext.getBeansWithAnnotation(MongoMigrationScript.class).values();
-        final Collection<MongoMigrScript> migScripts = appContext
-            .getBeansOfType(MongoMigrScript.class)
-            .values()
-            .stream()
-            .filter(ms -> !InitialMongoMigrScript.class.isInstance(ms))
-            .collect(Collectors.toList());
-            // final List<MigrationScript> allMigrationScripts = migScripts.stream()
-            // .map(migScript -> new
-            // MigrationScript(migScript)).collect(Collectors.toList());
-
-        // }).collect(Collectors.toList());
+        final Collection<MongoMigrScript> migScripts = scriptLookupService.findMongoScripts();
         final List<MongoMigrScript> migScriptsToApply = findMigScriptsToApply(version, migScripts);
         return migScriptsToApply;
     }
 
-    private List<MongoMigrScript> findMigScriptsToApply(
-            String version,
-            Collection<MongoMigrScript> allMigrationScripts) {
+    private List<MongoMigrScript> findMigScriptsToApply(String version, Collection<MongoMigrScript> allMigrationScripts) {
         if (allMigrationScripts.isEmpty()) {
             return new ArrayList<>();
         }
@@ -181,33 +163,17 @@ public class MigraMongo {
             return new ArrayList<>();
         }
         if (candidates.size() > 1) {
-            throw new IllegalStateException(
-                "There is more than one script with fromVersion " + version + ": " + allMigrationScripts);
+            throw new IllegalStateException("There is more than one script with fromVersion " +
+                version +
+                ": " +
+                allMigrationScripts);
         }
         final MongoMigrScript nextMigrationScript = candidates.get(0);
-        final List<MongoMigrScript> nextMigScriptsRec = findMigScriptsToApply(
-            nextMigrationScript.getMigrationInfo().getToVersion(),
-            rest);
+        final List<MongoMigrScript> nextMigScriptsRec = findMigScriptsToApply(nextMigrationScript
+            .getMigrationInfo()
+            .getToVersion(), rest);
         candidates.addAll(nextMigScriptsRec);
         return candidates;
-    }
-
-    public MongoMigrScript getInitialMigrationScript() {
-        // final Collection<Object> values =
-        // appContext.getBeansWithAnnotation(InitialMongoMigrationScript.class).values();
-        Collection<InitialMongoMigrScript> values = appContext.getBeansOfType(InitialMongoMigrScript.class).values();
-        if (values.isEmpty()) {
-            return null;
-        }
-        if (values.size() > 1) {
-            throw new IllegalStateException(
-                "There cannot be more than one InitialMigrationScript!. Found " + values.size() + ": " + values);
-        }
-        return values.iterator().next();
-    }
-
-    public void applyMigration(MongoMigrScript migrationObject) {
-        migrationObject.migrate(database);
     }
 
 }

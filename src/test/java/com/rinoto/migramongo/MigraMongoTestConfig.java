@@ -2,12 +2,15 @@ package com.rinoto.migramongo;
 
 import javax.annotation.PreDestroy;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableMBeanExport;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
+import com.rinoto.migramongo.lookup.SpringScriptLookupService;
 
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
@@ -22,6 +25,9 @@ import de.flapdoodle.embed.process.runtime.Network;
 public class MigraMongoTestConfig {
 
     public static final String MIGRAMONGO_TEST_DB = "migraMongoTestDB";
+
+    @Autowired
+    private ApplicationContext appContext;
 
     protected static MongodExecutable executable;
     protected static MongodProcess mongod;
@@ -41,7 +47,7 @@ public class MigraMongoTestConfig {
 
     @Bean
     public MigraMongo migraMongo() throws Exception {
-        return new MigraMongo(mongoDatabase());
+        return new MigraMongo(mongoDatabase(), new SpringScriptLookupService(appContext));
     }
 
     @PreDestroy
