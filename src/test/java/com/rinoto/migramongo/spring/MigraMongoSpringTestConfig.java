@@ -27,7 +27,7 @@ public class MigraMongoSpringTestConfig {
 	@Autowired
 	EmbeddedMongo embeddedMongo;
 
-	protected static MongoClient mongoClient;
+	private static MongoClient mongoClient;
 
 	@Bean
 	public MongoDatabase mongoDatabase() throws Exception {

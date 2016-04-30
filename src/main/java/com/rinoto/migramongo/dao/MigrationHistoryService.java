@@ -5,12 +5,12 @@ import com.rinoto.migramongo.MigrationInfo;
 
 public interface MigrationHistoryService {
 
-    MigrationEntry getLastMigrationApplied();
+	MigrationEntry getLastMigrationApplied();
 
-    MigrationEntry setMigrationStatusToFinished(MigrationEntry migrationEntry);
+	MigrationEntry setMigrationStatusToFinished(MigrationEntry migrationEntry);
 
-    MigrationEntry setMigrationStatusToFailed(MigrationEntry migrationEntry, Exception e);
+	MigrationEntry setMigrationStatusToFailed(MigrationEntry migrationEntry, Exception e);
 
-    MigrationEntry insertMigrationStatusInProgress(MigrationInfo migrationInfo);
+	MigrationEntry insertMigrationStatusInProgress(MigrationInfo migrationInfo);
 
 }

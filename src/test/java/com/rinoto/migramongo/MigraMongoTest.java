@@ -43,8 +43,8 @@ public class MigraMongoTest {
 		when(migEntryService.insertMigrationStatusInProgress(any(MigrationInfo.class))).thenAnswer(i -> {
 			final MigrationInfo migInfo = (MigrationInfo) i.getArguments()[0];
 			final MigrationEntry e = new MigrationEntry();
-			e.fromVersion = migInfo.getFromVersion();
-			e.toVersion = migInfo.getToVersion();
+			e.setFromVersion(migInfo.getFromVersion());
+			e.setToVersion(migInfo.getToVersion());
 			return e;
 		});
 		when(migEntryService.setMigrationStatusToFinished(any(MigrationEntry.class))).thenAnswer(i -> {
@@ -137,10 +137,7 @@ public class MigraMongoTest {
 	public void shouldNotMigrateIfFirstMigrationAlreadyExistsOnDB() throws Exception {
 		// given
 		// -- last entry in db
-		final MigrationEntry lastEntry = new MigrationEntry();
-		lastEntry.fromVersion = "1";
-		lastEntry.toVersion = "1";
-		when(migEntryService.getLastMigrationApplied()).thenReturn(lastEntry);
+		mockLastEntry("1", "1");
 		// -- initial script provided
 		final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
 		when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
@@ -153,15 +150,19 @@ public class MigraMongoTest {
 		verifyZeroInteractions(mockInitialScript);
 	}
 
+	private void mockLastEntry(String from, String to) {
+		final MigrationEntry lastEntry = new MigrationEntry();
+		lastEntry.setFromVersion(from);
+		lastEntry.setToVersion(to);
+		when(migEntryService.getLastMigrationApplied()).thenReturn(lastEntry);
+	}
+
 	@Test
 	public void shouldMigrateIfInitialIsAlreadyOnDB() throws Exception {
 		// given
 		// -- last entry in db
-		final MigrationEntry lastEntry = new MigrationEntry();
-		lastEntry.fromVersion = "1";
-		lastEntry.toVersion = "1";
+		mockLastEntry("1", "1");
 		// - mig scripts provided
-		when(migEntryService.getLastMigrationApplied()).thenReturn(lastEntry);
 		final List<MongoMigrationScript> migrationScripts = Arrays.asList(mockMongoScript("1", "2"),
 				mockMongoScript("2", "8"), mockMongoScript("8", "9"));
 		when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
@@ -178,11 +179,8 @@ public class MigraMongoTest {
 	public void shouldMigrateIfACoupleOfMigrationsAreAlreadyOnDB() throws Exception {
 		// given
 		// -- last entry in db
-		final MigrationEntry lastEntry = new MigrationEntry();
-		lastEntry.fromVersion = "4";
-		lastEntry.toVersion = "5";
+		mockLastEntry("4", "5");
 		// - mig scripts provided
-		when(migEntryService.getLastMigrationApplied()).thenReturn(lastEntry);
 		final List<MongoMigrationScript> migrationScripts = Arrays.asList(mockMongoScript("1", "2"),
 				mockMongoScript("2", "8"), mockMongoScript("5", "7"), mockMongoScript("7", "8"));
 		when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
@@ -200,11 +198,8 @@ public class MigraMongoTest {
 	public void shouldNotMigrateIfNoNewMigrationScriptsAvailable() throws Exception {
 		// given
 		// -- last entry in db
-		final MigrationEntry lastEntry = new MigrationEntry();
-		lastEntry.fromVersion = "4";
-		lastEntry.toVersion = "5";
+		mockLastEntry("4", "5");
 		// - mig scripts provided
-		when(migEntryService.getLastMigrationApplied()).thenReturn(lastEntry);
 		when(lookupService.findMongoScripts()).thenReturn(Collections.emptyList());
 		// when
 		final MigraMongoStatus status = migraMongo.migrate();

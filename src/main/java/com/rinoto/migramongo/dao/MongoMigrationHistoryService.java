@@ -13,99 +13,108 @@ import com.rinoto.migramongo.MigrationInfo;
 
 public class MongoMigrationHistoryService implements MigrationHistoryService {
 
-    private static final String MIGRAMONGO_COLLECTION = "_migramongo";
-    private final MongoDatabase database;
+	public static final String MIGRAMONGO_COLLECTION = "_migramongo";
+	private final MongoDatabase database;
 
-    public MongoMigrationHistoryService(MongoDatabase database) {
-        this.database = database;
-    }
+	public MongoMigrationHistoryService(MongoDatabase database) {
+		this.database = database;
+	}
 
-    @Override
-    public MigrationEntry insertMigrationStatusInProgress(MigrationInfo migrationInfo) {
-        final MigrationEntry migEntry = new MigrationEntry();
-        migEntry.module = migrationInfo.getModule();
-        migEntry.status = "IN_PROGRESS";
-        migEntry.fromVersion = migrationInfo.getFromVersion();
-        migEntry.toVersion = migrationInfo.getToVersion();
-        migEntry.info = migrationInfo.getInfo();
-        migEntry.createdAt = new Date();
+	@Override
+	public MigrationEntry insertMigrationStatusInProgress(MigrationInfo migrationInfo) {
+		final MigrationEntry migEntry = new MigrationEntry();
+		migEntry.setModule(migrationInfo.getModule());
+		migEntry.setStatus("IN_PROGRESS");
+		migEntry.setFromVersion(migrationInfo.getFromVersion());
+		migEntry.setToVersion(migrationInfo.getToVersion());
+		migEntry.setInfo(migrationInfo.getInfo());
+		migEntry.setCreatedAt(new Date());
 
-        return insertMigrationEntry(migEntry);
+		return insertMigrationEntry(migEntry);
 
-    }
+	}
 
-    private MigrationEntry insertMigrationEntry(MigrationEntry migEntry) {
+	private MigrationEntry insertMigrationEntry(MigrationEntry migEntry) {
 
-        migEntry.updatedAt = new Date();
+		migEntry.setUpdatedAt(new Date());
 
-        final Document document = mapMigEntryToDocument(migEntry);
-        if (migEntry.id == null) {
-            getMigramongoCollection().insertOne(document);
-            migEntry.id = document.getObjectId("_id");
-        } else {
-            getMigramongoCollection().replaceOne(eq("_id", migEntry.id), document);
-        }
-        return migEntry;
-    }
+		final Document document = mapMigEntryToDocument(migEntry);
+		if (migEntry.getId() == null) {
+			getMigramongoCollection().insertOne(document);
+			migEntry.setId(document.getObjectId("_id"));
+		} else {
+			getMigramongoCollection().replaceOne(eq("_id", migEntry.getId()), document);
+		}
+		return migEntry;
+	}
 
-    public MongoCollection<Document> getMigramongoCollection() {
-        MongoCollection<Document> collection = this.database.getCollection(MIGRAMONGO_COLLECTION);
-        if (collection == null) {
-            this.database.createCollection(MIGRAMONGO_COLLECTION);
-            collection = this.database.getCollection(MIGRAMONGO_COLLECTION);
-        }
-        return collection;
-    }
+	public MongoCollection<Document> getMigramongoCollection() {
+		MongoCollection<Document> collection = this.database.getCollection(MIGRAMONGO_COLLECTION);
+		if (collection == null) {
+			this.database.createCollection(MIGRAMONGO_COLLECTION);
+			collection = this.database.getCollection(MIGRAMONGO_COLLECTION);
+		}
+		return collection;
+	}
 
-    @Override
-    public MigrationEntry setMigrationStatusToFailed(MigrationEntry migrationEntry, Exception e) {
-        migrationEntry.status = "ERROR";
-        migrationEntry.statusMessage = e.getMessage();
-        return insertMigrationEntry(migrationEntry);
-    }
+	@Override
+	public MigrationEntry setMigrationStatusToFailed(MigrationEntry migrationEntry, Exception e) {
+		migrationEntry.setStatus("ERROR");
+		migrationEntry.setStatusMessage(e.getMessage());
+		return insertMigrationEntry(migrationEntry);
+	}
 
-    @Override
-    public MigrationEntry setMigrationStatusToFinished(MigrationEntry migrationEntry) {
-        migrationEntry.status = "OK";
-        return insertMigrationEntry(migrationEntry);
-    }
+	@Override
+	public MigrationEntry setMigrationStatusToFinished(MigrationEntry migrationEntry) {
+		migrationEntry.setStatus("OK");
+		return insertMigrationEntry(migrationEntry);
+	}
 
-    @Override
-    public MigrationEntry getLastMigrationApplied() {
-        final Document doc = getMigramongoCollection().find().sort(new Document("createdAt", 1)).first();
-        return mapMigrationEntry(doc);
-    }
+	@Override
+	public MigrationEntry getLastMigrationApplied() {
+		// MongoIterable<MigrationEntry> map =
+		// getMigramongoCollection().find().map(d -> mapMigrationEntry(d));
+		// map.forEach((Block<MigrationEntry>) document -> {
+		// System.out.println(document);
+		// });
+		final Document doc = getMigramongoCollection().find().sort(new Document("createdAt", -1)).first();
+		return mapMigrationEntry(doc);
+	}
 
-    private MigrationEntry mapMigrationEntry(Document doc) {
-        if (doc == null) {
-            return null;
-        }
-        final MigrationEntry migEntry = new MigrationEntry();
-        migEntry.id = doc.getObjectId("_id");
-        migEntry.fromVersion = doc.getString("fromVersion");
-        migEntry.toVersion = doc.getString("toVersion");
-        migEntry.createdAt = doc.getDate("createdAt");
-        migEntry.module = doc.getString("module");
-        migEntry.info = doc.getString("info");
-        migEntry.status = doc.getString("status");
-        migEntry.statusMessage = doc.getString("statusMessage");
-        return migEntry;
-    }
+	private MigrationEntry mapMigrationEntry(Document doc) {
+		if (doc == null) {
+			return null;
+		}
+		final MigrationEntry migEntry = new MigrationEntry();
+		migEntry.setId(doc.getObjectId("_id"));
+		migEntry.setFromVersion(doc.getString("fromVersion"));
+		migEntry.setToVersion(doc.getString("toVersion"));
+		migEntry.setCreatedAt(doc.getDate("createdAt"));
+		migEntry.setModule(doc.getString("module"));
+		migEntry.setInfo(doc.getString("info"));
+		migEntry.setStatus(doc.getString("status"));
+		migEntry.setStatusMessage(doc.getString("statusMessage"));
+		return migEntry;
+	}
 
-    private Document mapMigEntryToDocument(MigrationEntry migEntry) {
-        final Document doc = new Document();
-        if (migEntry.id != null) {
-            doc.put("_id", migEntry.id);
-        }
-        doc.put("fromVersion", migEntry.fromVersion);
-        doc.put("toVersion", migEntry.toVersion);
-        doc.put("createdAt", migEntry.createdAt);
-        doc.put("updatedAt", migEntry.updatedAt);
-        doc.put("module", migEntry.module);
-        doc.put("info", migEntry.info);
-        doc.put("status", migEntry.status);
-        doc.put("statusMessage", migEntry.statusMessage);
-        return doc;
-    }
+	private Document mapMigEntryToDocument(MigrationEntry migEntry) {
+		final Document doc = new Document();
+		if (migEntry.getId() != null) {
+			doc.put("_id", migEntry.getId());
+		}
+		doc.put("fromVersion", migEntry.getFromVersion());
+		doc.put("toVersion", migEntry.getToVersion());
+		doc.put("createdAt", migEntry.getCreatedAt());
+		doc.put("updatedAt", migEntry.getUpdatedAt());
+		doc.put("module", migEntry.getModule());
+		doc.put("info", migEntry.getInfo());
+		doc.put("status", migEntry.getStatus());
+		doc.put("statusMessage", migEntry.getStatusMessage());
+		return doc;
+	}
+
+	MongoDatabase getDatabase() {
+		return database;
+	}
 
 }

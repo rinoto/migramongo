@@ -30,8 +30,8 @@ public class MigraMongoSpringTest {
 		// then
 		assertThat(migrate.status, is(MigrationStatus.OK));
 		assertThat(migrate.migrationsApplied, hasSize(2));
-		assertThat(migrate.migrationsApplied.get(0).fromVersion, is("1"));
-		assertThat(migrate.migrationsApplied.get(0).toVersion, is("1"));
+		assertThat(migrate.migrationsApplied.get(0).getFromVersion(), is("1"));
+		assertThat(migrate.migrationsApplied.get(0).getToVersion(), is("1"));
 	}
 
 }

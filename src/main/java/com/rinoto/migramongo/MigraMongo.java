@@ -33,7 +33,8 @@ public class MigraMongo {
 			lastMigrationApplied = executeMigrationScript(initialMigrationScript);
 			status.addEntry(lastMigrationApplied);
 		}
-		final List<MongoMigrationScript> migrationScriptsToApply = getMigrationScriptsToApply(lastMigrationApplied.toVersion);
+		final List<MongoMigrationScript> migrationScriptsToApply = getMigrationScriptsToApply(lastMigrationApplied
+				.getToVersion());
 		migrationScriptsToApply.forEach(ms -> {
 			final MigrationEntry migEntry = executeMigrationScript(ms);
 			status.addEntry(migEntry);
