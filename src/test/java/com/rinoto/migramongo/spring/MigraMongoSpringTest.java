@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -15,6 +16,7 @@ import com.rinoto.migramongo.MigraMongoStatus;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
 
 @ContextConfiguration(classes = { MigraMongoSpringTestConfig.class, InitialMigScript.class, MigScript1.class })
+@DirtiesContext
 @RunWith(SpringJUnit4ClassRunner.class)
 public class MigraMongoSpringTest {
 
