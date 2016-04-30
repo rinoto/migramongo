@@ -6,15 +6,15 @@ import java.util.List;
 
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
-import com.rinoto.migramongo.dao.MigrationEntryService;
+import com.rinoto.migramongo.dao.MigrationHistoryService;
 
 public class MigraMongo {
 
 	private final ScriptLookupService scriptLookupService;
-	private final MigrationEntryService migrationEntryService;
+	private final MigrationHistoryService migrationEntryService;
 	private MongoDatabase database;
 
-	public MigraMongo(MongoDatabase database, MigrationEntryService migrationEntryService,
+	public MigraMongo(MongoDatabase database, MigrationHistoryService migrationEntryService,
 			ScriptLookupService scriptLookupService) {
 		this.database = database;
 		this.migrationEntryService = migrationEntryService;

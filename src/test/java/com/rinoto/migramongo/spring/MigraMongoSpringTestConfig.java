@@ -11,6 +11,8 @@ import org.springframework.context.annotation.EnableMBeanExport;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongo;
+import com.rinoto.migramongo.dao.MigrationHistoryService;
+import com.rinoto.migramongo.dao.MongoMigrationHistoryService;
 
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
@@ -24,37 +26,40 @@ import de.flapdoodle.embed.process.runtime.Network;
 @EnableMBeanExport
 public class MigraMongoSpringTestConfig {
 
-    public static final String MIGRAMONGO_TEST_DB = "migraMongoTestDB";
+	public static final String MIGRAMONGO_TEST_DB = "migraMongoTestDB";
 
-    @Autowired
-    private ApplicationContext appContext;
+	@Autowired
+	private ApplicationContext appContext;
 
-    protected static MongodExecutable executable;
-    protected static MongodProcess mongod;
-    protected static MongoClient mongoClient;
+	protected static MongodExecutable executable;
+	protected static MongodProcess mongod;
+	protected static MongoClient mongoClient;
 
-    @Bean
-    public MongoDatabase mongoDatabase() throws Exception {
-        final MongodStarter starter = MongodStarter.getDefaultInstance();
-        executable = starter.prepare(new MongodConfigBuilder()
-            .version(Version.Main.PRODUCTION)
-            .net(new Net(12345, Network.localhostIsIPv6()))
-            .build());
-        mongod = executable.start();
-        mongoClient = new MongoClient("localhost", 12345);
-        return mongoClient.getDatabase(MIGRAMONGO_TEST_DB);
-    }
+	@Bean
+	public MongoDatabase mongoDatabase() throws Exception {
+		final MongodStarter starter = MongodStarter.getDefaultInstance();
+		executable = starter.prepare(new MongodConfigBuilder().version(Version.Main.PRODUCTION)
+				.net(new Net(12345, Network.localhostIsIPv6())).build());
+		mongod = executable.start();
+		mongoClient = new MongoClient("localhost", 12345);
+		return mongoClient.getDatabase(MIGRAMONGO_TEST_DB);
+	}
 
-    @Bean
-    public MigraMongo migraMongo() throws Exception {
-        return new SpringMigraMongo(appContext, mongoDatabase());
-    }
+	@Bean
+	public MigrationHistoryService migrationHistoryService() throws Exception {
+		return new MongoMigrationHistoryService(mongoDatabase());
+	}
 
-    @PreDestroy
-    public void destroyMongo() {
-        mongoClient.close();
-        mongod.stop();
-        executable.stop();
-    }
+	@Bean
+	public MigraMongo migraMongo() throws Exception {
+		return new SpringMigraMongo(appContext, mongoDatabase(), migrationHistoryService());
+	}
+
+	@PreDestroy
+	public void destroyMongo() {
+		mongoClient.close();
+		mongod.stop();
+		executable.stop();
+	}
 
 }

@@ -11,12 +11,12 @@ import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigrationEntry;
 import com.rinoto.migramongo.MigrationInfo;
 
-public class MongoMigrationEntryService implements MigrationEntryService {
+public class MongoMigrationHistoryService implements MigrationHistoryService {
 
     private static final String MIGRAMONGO_COLLECTION = "_migramongo";
     private final MongoDatabase database;
 
-    public MongoMigrationEntryService(MongoDatabase database) {
+    public MongoMigrationHistoryService(MongoDatabase database) {
         this.database = database;
     }
 

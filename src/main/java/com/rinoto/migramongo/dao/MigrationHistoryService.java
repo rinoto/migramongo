@@ -3,7 +3,7 @@ package com.rinoto.migramongo.dao;
 import com.rinoto.migramongo.MigrationEntry;
 import com.rinoto.migramongo.MigrationInfo;
 
-public interface MigrationEntryService {
+public interface MigrationHistoryService {
 
     MigrationEntry getLastMigrationApplied();
 
