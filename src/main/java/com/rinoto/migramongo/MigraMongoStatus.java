@@ -15,7 +15,15 @@ public class MigraMongoStatus {
     }
 
     public static final MigraMongoStatus ok() {
-        return new MigraMongoStatus(MigrationStatus.OK, "Everything ok");
+        return ok("Everything ok");
+    }
+
+    public static final MigraMongoStatus ok(String message) {
+        return new MigraMongoStatus(MigrationStatus.OK, message);
+    }
+
+    public static final MigraMongoStatus error(String errorMessage) {
+        return new MigraMongoStatus(MigrationStatus.ERROR, errorMessage);
     }
 
     public MigraMongoStatus addEntry(MigrationEntry migEntry) {

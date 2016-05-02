@@ -55,8 +55,8 @@ public class MigraMongoTest {
             entry.setStatus(MigrationStatus.OK);
             return entry;
         });
-        when(migEntryService.setMigrationStatusToFailed(any(MigrationEntry.class), any(Exception.class))).thenAnswer(
-            i -> {
+        when(migEntryService.setMigrationStatusToFailed(any(MigrationEntry.class), any(Exception.class)))
+            .thenAnswer(i -> {
                 final MigrationEntry entry = (MigrationEntry) i.getArguments()[0];
                 entry.setStatus(MigrationStatus.ERROR);
                 entry.setStatusMessage(((Exception) i.getArguments()[1]).getMessage());
@@ -110,10 +110,8 @@ public class MigraMongoTest {
         // given
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
-        final List<MongoMigrationScript> migrationScripts = Arrays.asList(
-            mockMongoScript("1", "2"),
-            mockMongoScript("2", "8"),
-            mockMongoScript("8", "9"));
+        final List<MongoMigrationScript> migrationScripts = Arrays
+            .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("8", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -142,10 +140,8 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(4));
         verify(mockInitialScript).migrate(mongoDatabase);
-        migrationScripts
-            .stream()
-            .filter(ms -> ms.getMigrationInfo().getFromVersion().matches("[0-9]*"))
-            .forEach(ms -> verify(ms).migrate(mongoDatabase));
+        migrationScripts.stream().filter(ms -> ms.getMigrationInfo().getFromVersion().matches("[0-9]*")).forEach(
+            ms -> verify(ms).migrate(mongoDatabase));
     }
 
     @Test
@@ -180,10 +176,8 @@ public class MigraMongoTest {
         // -- last entry in db
         mockLastEntry("1", "1");
         // - mig scripts provided
-        final List<MongoMigrationScript> migrationScripts = Arrays.asList(
-            mockMongoScript("1", "2"),
-            mockMongoScript("2", "8"),
-            mockMongoScript("8", "9"));
+        final List<MongoMigrationScript> migrationScripts = Arrays
+            .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("8", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -209,9 +203,10 @@ public class MigraMongoTest {
         // then
         assertThat(status.status, is(MigrationStatus.ERROR));
         assertThat(status.migrationsApplied, hasSize(2));
-        assertThat(
-            status.message,
-            allOf(containsString("fromVersion '2'"), containsString("toVersion '8'"), containsString("script failing")));
+        assertThat(status.message, allOf(
+            containsString("fromVersion '2'"),
+            containsString("toVersion '8'"),
+            containsString("script failing")));
         verify(migrationScripts.get(0)).migrate(mongoDatabase);
         verify(migrationScripts.get(1)).migrate(mongoDatabase);
         verify(migrationScripts.get(2), never()).migrate(mongoDatabase);
@@ -224,22 +219,18 @@ public class MigraMongoTest {
         final MigrationEntry mockLastEntry = mockLastEntry("1", "1");
         mockLastEntry.setStatus(MigrationStatus.ERROR);
         // - mig scripts provided
-        final List<MongoMigrationScript> migrationScripts = Arrays.asList(
-            mockMongoScript("1", "2"),
-            mockMongoScript("2", "8"),
-            mockMongoScript("8", "9"));
+        final List<MongoMigrationScript> migrationScripts = Arrays
+            .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("8", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
         // then
         assertThat(status.status, is(MigrationStatus.ERROR));
         assertThat(status.migrationsApplied, hasSize(0));
-        assertThat(
-            status.message,
-            allOf(
-                containsString("Last Migration is in status ERROR"),
-                containsString("fromVersion=1"),
-                containsString("toVersion=1")));
+        assertThat(status.message, allOf(
+            containsString("Last Migration is in status ERROR"),
+            containsString("fromVersion=1"),
+            containsString("toVersion=1")));
         migrationScripts.forEach(ms -> verify(ms, never()).migrate(mongoDatabase));
     }
 
@@ -279,7 +270,76 @@ public class MigraMongoTest {
         // then
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(0));
+    }
 
+    @Test
+    public void shouldNotRepairEntryThatDoesNotExist() throws Exception {
+        // when
+        final MigraMongoStatus status = migraMongo.repair("2", "3");
+        // then
+        assertThat(status.status, is(MigrationStatus.ERROR));
+        assertThat(status.message, containsString("No migration entry found"));
+        assertThat(status.migrationsApplied, hasSize(0));
+    }
+
+    @Test
+    public void shouldRepairEntryInErrorStatus() throws Exception {
+        // given
+        mockEntry("4", "5", MigrationStatus.ERROR);
+        // when
+        final MigraMongoStatus status = migraMongo.repair("4", "5");
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        assertThat(
+            status.message,
+            containsString("changed from '" + MigrationStatus.ERROR + "' to '" + MigrationStatus.OK + "'"));
+        assertThat(status.migrationsApplied, hasSize(1));
+    }
+
+    @Test
+    public void shouldRepairEntryInInProgressStatus() throws Exception {
+        // given
+        mockEntry("4", "5", MigrationStatus.IN_PROGRESS);
+        // when
+        final MigraMongoStatus status = migraMongo.repair("4", "5");
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        assertThat(
+            status.message,
+            containsString("changed from '" + MigrationStatus.IN_PROGRESS + "' to '" + MigrationStatus.OK + "'"));
+        assertThat(status.migrationsApplied, hasSize(1));
+    }
+
+    @Test
+    public void shouldNotRepairEntryInOkStatus() throws Exception {
+        // given
+        mockEntry("4", "5", MigrationStatus.OK);
+        // when
+        final MigraMongoStatus status = migraMongo.repair("4", "5");
+        // then
+        assertThat(status.status, is(MigrationStatus.ERROR));
+        assertThat(status.message, containsString("has already status '" + MigrationStatus.OK + "'"));
+        assertThat(status.migrationsApplied, hasSize(0));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldFailIfThereAreMoreThanOneMigrationScriptsToApply() throws Exception {
+        // given
+        mockLastEntry("1", "1");
+        final List<MongoMigrationScript> migrationScripts = Arrays
+            .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("2", "9"));
+        when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
+
+        // when - expects IllegalStateException
+        migraMongo.migrate();
+    }
+
+    private void mockEntry(String fromVersion, String toVersion, MigrationStatus status) {
+        final MigrationEntry migEntry = new MigrationEntry();
+        migEntry.setFromVersion(fromVersion);
+        migEntry.setToVersion(toVersion);
+        migEntry.setStatus(status);
+        when(migEntryService.findMigration(fromVersion, toVersion)).thenReturn(migEntry);
     }
 
     private MongoMigrationScript mockMongoScript(String from, String to) {

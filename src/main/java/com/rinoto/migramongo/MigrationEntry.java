@@ -17,6 +17,7 @@ public class MigrationEntry {
     private MigrationStatus status;
     private String statusMessage;
     private Date updatedAt;
+    private boolean repaired = false;
 
     public ObjectId getId() {
         return id;
@@ -111,6 +112,14 @@ public class MigrationEntry {
             ", updatedAt=" +
             updatedAt +
             "]";
+    }
+
+    public boolean isRepaired() {
+        return repaired;
+    }
+
+    public void setRepaired(boolean repaired) {
+        this.repaired = repaired;
     }
 
 }

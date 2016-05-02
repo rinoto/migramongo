@@ -1,5 +1,6 @@
 package com.rinoto.migramongo.dao;
 
+import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
 import java.util.Date;
@@ -72,6 +73,13 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
     }
 
     @Override
+    public MigrationEntry setMigrationStatusToManuallyRepaired(MigrationEntry migrationEntry) {
+        migrationEntry.setStatus(MigrationStatus.OK);
+        migrationEntry.setRepaired(true);
+        return insertMigrationEntry(migrationEntry);
+    }
+
+    @Override
     public MigrationEntry getLastMigrationApplied() {
         final Document doc = getMigramongoCollection().find().sort(new Document("createdAt", -1)).first();
         return mapMigrationEntry(doc);
@@ -90,6 +98,7 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         migEntry.setInfo(doc.getString("info"));
         migEntry.setStatus(MigrationStatus.valueOf(doc.getString("status")));
         migEntry.setStatusMessage(doc.getString("statusMessage"));
+        migEntry.setRepaired(doc.getBoolean("repaired"));
         return migEntry;
     }
 
@@ -106,11 +115,20 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         doc.put("info", migEntry.getInfo());
         doc.put("status", migEntry.getStatus().name());
         doc.put("statusMessage", migEntry.getStatusMessage());
+        doc.put("repaired", migEntry.isRepaired());
         return doc;
     }
 
     MongoDatabase getDatabase() {
         return database;
+    }
+
+    @Override
+    public MigrationEntry findMigration(String fromVersion, String toVersion) {
+        return getMigramongoCollection()
+            .find(and(eq("fromVersion", fromVersion), eq("toVersion", toVersion)))
+            .map(d -> mapMigrationEntry(d))
+            .first();
     }
 
 }
