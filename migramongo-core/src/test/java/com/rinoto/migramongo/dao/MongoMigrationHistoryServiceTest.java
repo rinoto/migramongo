@@ -6,30 +6,36 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.rinoto.migramongo.EmbeddedMongo;
 import com.rinoto.migramongo.InitialMigrationInfo;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
 import com.rinoto.migramongo.MigrationEntry;
 import com.rinoto.migramongo.MigrationInfo;
-import com.rinoto.migramongo.spring.MigraMongoSpringTestConfig;
 
-@ContextConfiguration(classes = {MigraMongoSpringTestConfig.class})
-@DirtiesContext
-@RunWith(SpringJUnit4ClassRunner.class)
 public class MongoMigrationHistoryServiceTest {
 
-    @Autowired
+    public static EmbeddedMongo mongo = new EmbeddedMongo();
+
     MongoMigrationHistoryService migrationHistoryService;
+
+    @BeforeClass
+    public static void startMongo() throws Exception {
+        mongo.start();
+    }
+
+    @AfterClass
+    public static void stopMongo() {
+        mongo.stop();
+    }
 
     @Before
     public void clearMigrations() {
+        migrationHistoryService = new MongoMigrationHistoryService(mongo.getClient().getDatabase("migramongotest"));
         migrationHistoryService.getMigramongoCollection().drop();
     }
 
@@ -50,8 +56,9 @@ public class MongoMigrationHistoryServiceTest {
     public void shouldSetMigrationStatusToFinished() throws Exception {
         // given
         addMigration(new InitialMigrationInfo("1"));
-        final MigrationEntry migInProgress = migrationHistoryService
-            .insertMigrationStatusInProgress(new MigrationInfo("1", "2"));
+        final MigrationEntry migInProgress = migrationHistoryService.insertMigrationStatusInProgress(new MigrationInfo(
+            "1",
+            "2"));
         assertThat(
             migrationHistoryService.getLastMigrationApplied(),
             allOf(
@@ -75,8 +82,9 @@ public class MongoMigrationHistoryServiceTest {
     public void shouldSetMigrationStatusToError() throws Exception {
         // given
         addMigration(new InitialMigrationInfo("1"));
-        final MigrationEntry migInProgress = migrationHistoryService
-            .insertMigrationStatusInProgress(new MigrationInfo("1", "2"));
+        final MigrationEntry migInProgress = migrationHistoryService.insertMigrationStatusInProgress(new MigrationInfo(
+            "1",
+            "2"));
         assertThat(
             migrationHistoryService.getLastMigrationApplied(),
             allOf(
@@ -85,9 +93,8 @@ public class MongoMigrationHistoryServiceTest {
                 hasProperty("toVersion", is("2"))));
 
         // when 
-        migrationHistoryService.setMigrationStatusToFailed(
-            migInProgress,
-            new RuntimeException("manually set to error"));
+        migrationHistoryService
+            .setMigrationStatusToFailed(migInProgress, new RuntimeException("manually set to error"));
 
         //then
         assertThat(
@@ -103,8 +110,9 @@ public class MongoMigrationHistoryServiceTest {
     public void shouldSetMigrationStatusToRepaired() throws Exception {
         // given
         addMigration(new InitialMigrationInfo("1"));
-        final MigrationEntry migInProgress = migrationHistoryService
-            .insertMigrationStatusInProgress(new MigrationInfo("1", "2"));
+        final MigrationEntry migInProgress = migrationHistoryService.insertMigrationStatusInProgress(new MigrationInfo(
+            "1",
+            "2"));
         assertThat(
             migrationHistoryService.getLastMigrationApplied(),
             allOf(
