@@ -14,14 +14,14 @@ public interface MongoMigrationScript {
     /**
      * Returns the <code>MigrationInfo</code> object with the information needed on how to migrate the script (<code>from</code> and <code>to</code> versions)
      * 
-     * @return
+     * @return the migrationInfo
      */
     MigrationInfo getMigrationInfo();
 
     /**
      * It performs the actual migration. This method will be called by <code>MigraMongo</code>, and the status (ok, failed) will be written to the <code>_migramongo</code> collection in the DB
      * 
-     * @param database
+     * @param database mongodb to use
      */
     void migrate(MongoDatabase database);
 

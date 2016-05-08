@@ -33,7 +33,7 @@ public class MigraMongo {
      * <p>
      * If there are no migrations in the source code, and there is no
      * 
-     * @return
+     * @return the status
      */
     public MigraMongoStatus migrate() {
         final MigraMongoStatus status = MigraMongoStatus.ok();
@@ -86,34 +86,39 @@ public class MigraMongo {
      * the entry gets defined by the <code>fromVersion</code> and <code>toVersion</code> parameters
      * <p>
      * if the entry does not exist, or it was not in one of the allowed states for reparing, an error status will be thrown
+     * 
+     * @param fromVersion fromVersion
+     * @param toVersion toVersion
+     * @return status
      */
     public MigraMongoStatus repair(String fromVersion, String toVersion) {
         final MigrationEntry migrationEntry = migrationEntryService.findMigration(fromVersion, toVersion);
         if (migrationEntry == null) {
-            return MigraMongoStatus.error(
-                "No migration entry found for fromVersion '" + fromVersion + "' and toVersion '" + toVersion + "'");
+            return MigraMongoStatus.error("No migration entry found for fromVersion '" +
+                fromVersion +
+                "' and toVersion '" +
+                toVersion +
+                "'");
         }
         if (migrationEntry.getStatus() == MigrationStatus.OK) {
-            return MigraMongoStatus.error(
-                "Migration entry with fromVersion '" +
-                    fromVersion +
-                    "' and toVersion '" +
-                    toVersion +
-                    "' has already status '" +
-                    migrationEntry.getStatus() +
-                    "'. Nothing will be done");
+            return MigraMongoStatus.error("Migration entry with fromVersion '" +
+                fromVersion +
+                "' and toVersion '" +
+                toVersion +
+                "' has already status '" +
+                migrationEntry.getStatus() +
+                "'. Nothing will be done");
         }
         final MigrationStatus previousStatus = migrationEntry.getStatus();
         final MigrationEntry correctedMigrationEntry = migrationEntryService
             .setMigrationStatusToFinished(migrationEntry);
-        final MigraMongoStatus status = MigraMongoStatus.ok(
-            "Status of migrationEntry " +
-                migrationEntry +
-                " changed from '" +
-                previousStatus +
-                "' to '" +
-                MigrationStatus.OK +
-                "'");
+        final MigraMongoStatus status = MigraMongoStatus.ok("Status of migrationEntry " +
+            migrationEntry +
+            " changed from '" +
+            previousStatus +
+            "' to '" +
+            MigrationStatus.OK +
+            "'");
         status.addEntry(correctedMigrationEntry);
         return status;
     }
@@ -123,8 +128,8 @@ public class MigraMongo {
     }
 
     private MigrationEntry executeMigrationScript(MongoMigrationScript migrationScript) {
-        final MigrationEntry migrationEntry = migrationEntryService
-            .insertMigrationStatusInProgress(migrationScript.getMigrationInfo());
+        final MigrationEntry migrationEntry = migrationEntryService.insertMigrationStatusInProgress(migrationScript
+            .getMigrationInfo());
         try {
             migrationScript.migrate(database);
             return migrationEntryService.setMigrationStatusToFinished(migrationEntry);
@@ -158,13 +163,15 @@ public class MigraMongo {
             return new ArrayList<>();
         }
         if (candidates.size() > 1) {
-            throw new IllegalStateException(
-                "There is more than one script with fromVersion " + version + ": " + allMigrationScripts);
+            throw new IllegalStateException("There is more than one script with fromVersion " +
+                version +
+                ": " +
+                allMigrationScripts);
         }
         final MongoMigrationScript nextMigrationScript = candidates.get(0);
-        final List<MongoMigrationScript> nextMigScriptsRec = findMigScriptsToApply(
-            nextMigrationScript.getMigrationInfo().getToVersion(),
-            rest);
+        final List<MongoMigrationScript> nextMigScriptsRec = findMigScriptsToApply(nextMigrationScript
+            .getMigrationInfo()
+            .getToVersion(), rest);
         candidates.addAll(nextMigScriptsRec);
         return candidates;
     }
