@@ -30,6 +30,13 @@
 
 		<!-- Test -->
 		<dependency>
+			<groupId>com.github.rinoto.mongo</groupId>
+			<artifactId>migramongo-core</artifactId>
+			<version>${project.version}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
 			<scope>test</scope>
