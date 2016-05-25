@@ -22,4 +22,9 @@ public class MigraMongoJMX {
         return gson.toJson(migraMongo.migrate());
     }
 
+    @ManagedOperation
+    public String dryRun() {
+        return gson.toJson(migraMongo.dryRun());
+    }
+
 }

@@ -56,6 +56,20 @@ public class MigraMongoJMXTest {
         assertThat(status, samePropertyValuesAs(migraMongoStatus));
     }
 
+    @Test
+    public void shouldReturnCorrectJsonWhenMigrationsAppliedInDryRun() {
+        //given 
+        final MigraMongoStatus migraMongoStatus = MigraMongoStatus.ok().addEntry(createMigrationEntry());
+        when(migraMongo.dryRun()).thenReturn(migraMongoStatus);
+
+        //when
+        final String jsonStatus = migraMongoJMX.dryRun();
+
+        //then
+        final MigraMongoStatus status = new Gson().fromJson(jsonStatus, MigraMongoStatus.class);
+        assertThat(status, samePropertyValuesAs(migraMongoStatus));
+    }
+
     private MigrationEntry createMigrationEntry() {
         final MigrationEntry entry = new MigrationEntry();
         entry.setCreatedAt(new Date());

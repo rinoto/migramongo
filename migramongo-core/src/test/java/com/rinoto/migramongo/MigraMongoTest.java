@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -86,6 +87,22 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(1));
         verify(mockInitialScript).migrate(mongoDatabase);
+    }
+
+    @Test
+    public void shouldPerformDryRunOnInitialScriptWhenNoMigrationExists() {
+        // given
+        final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
+        when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
+        // when
+        final MigraMongoStatus status = migraMongo.dryRun();
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        assertThat(status.migrationsApplied, hasSize(1));
+        assertThat(status.migrationsApplied.get(0).getFromVersion(), is("1"));
+        assertThat(status.migrationsApplied.get(0).getToVersion(), is("1"));
+        //IMPORTANT - no interactions in the script - migration has not been performed!
+        verify(mockInitialScript, times(0)).migrate(mongoDatabase);
     }
 
     @Test
