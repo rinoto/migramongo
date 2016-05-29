@@ -10,6 +10,8 @@
 
 ### Using migramongo with Spring
 
+#### Dependencies
+
 Add the `migramongo-spring` dependency to your project:
 
 ```xml
@@ -19,6 +21,7 @@ Add the `migramongo-spring` dependency to your project:
     <version>0.1</version>
 </dependency>
 ```
+#### Configuration
 
 Register `Migramongo` with an instance of `SpringMigraMongo` in a `@Configuration`. All you need is a reference to the `com.mongodb.client.MongoDatabase`. For example:
 
@@ -37,6 +40,15 @@ public class MigraMongoSpringSampleConfiguration {
 
 }
 ```
+
+### Writing the migration scripts
+The migration scripts are simple Java classes implementing the interfaces `InitialMongoMigrationScript` (for the initial script), or `MongoMigrationScript` (for the rest of migration scripts). Both interfaces define 2 methods: one that delivers the migration information (`getMigrationInfo()`) and another one that executes the migration (`migrate()`).
+
+You can implement the interfaces in any Spring Bean in your code. Ideally you would place those beans in a `migration` package. E.g.
+
+ 
+
+#### Execution
 
 `MigraMongo` offers a couple of methods to execute the migration scripts. 
 The easiest way to make sure that all your scripts have been executed is to call the `migrate` method at the startup of your application (i.e. in any `@PostConstruct`):
