@@ -77,7 +77,7 @@ public class MigraMongoTest {
     }
 
     @Test
-    public void shouldMigrateInitialScriptWhenNoMigrationExists() {
+    public void shouldMigrateInitialScriptWhenNoMigrationExists() throws Exception {
         // given
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
@@ -90,7 +90,7 @@ public class MigraMongoTest {
     }
 
     @Test
-    public void shouldPerformDryRunOnInitialScriptWhenNoMigrationExists() {
+    public void shouldPerformDryRunOnInitialScriptWhenNoMigrationExists() throws Exception {
         // given
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
@@ -106,7 +106,7 @@ public class MigraMongoTest {
     }
 
     @Test
-    public void shouldMigrateInitialScriptAndOneNormalOneWhenNoMigrationExists() {
+    public void shouldMigrateInitialScriptAndOneNormalOneWhenNoMigrationExists() throws Exception {
         // given
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
@@ -118,12 +118,14 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(2));
         verify(mockInitialScript).migrate(mongoDatabase);
-        migrationScripts.forEach(ms -> verify(ms).migrate(mongoDatabase));
+        for (MongoMigrationScript ms : migrationScripts) {
+            verify(ms).migrate(mongoDatabase);
+        }
 
     }
 
     @Test
-    public void shouldMigrateInitialScriptAndThreeNormalOnesWhenNoMigrationExists() {
+    public void shouldMigrateInitialScriptAndThreeNormalOnesWhenNoMigrationExists() throws Exception {
         // given
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
@@ -136,11 +138,14 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(migrationScripts.size() + 1));
         verify(mockInitialScript).migrate(mongoDatabase);
-        migrationScripts.forEach(ms -> verify(ms).migrate(mongoDatabase));
+        for (MongoMigrationScript ms : migrationScripts) {
+            verify(ms).migrate(mongoDatabase);
+        }
     }
 
     @Test
-    public void shouldMigrateInitialScriptAndThreeNormalOnesWhenNoMigrationExistsAndSomeScriptsDoNotCorrespondWithExistingVersions() {
+    public void shouldMigrateInitialScriptAndThreeNormalOnesWhenNoMigrationExistsAndSomeScriptsDoNotCorrespondWithExistingVersions()
+            throws Exception {
         // given
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
@@ -157,8 +162,13 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(4));
         verify(mockInitialScript).migrate(mongoDatabase);
-        migrationScripts.stream().filter(ms -> ms.getMigrationInfo().getFromVersion().matches("[0-9]*")).forEach(
-            ms -> verify(ms).migrate(mongoDatabase));
+        migrationScripts.stream().filter(ms -> ms.getMigrationInfo().getFromVersion().matches("[0-9]*")).forEach(ms -> {
+            try {
+                verify(ms).migrate(mongoDatabase);
+            } catch (Exception e) {
+                throw new RuntimeException("Exception while migrating", e);
+            }
+        });
     }
 
     @Test
@@ -201,7 +211,9 @@ public class MigraMongoTest {
         // then
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(migrationScripts.size()));
-        migrationScripts.forEach(ms -> verify(ms).migrate(mongoDatabase));
+        for (MongoMigrationScript ms : migrationScripts) {
+            verify(ms).migrate(mongoDatabase);
+        }
     }
 
     @Test
@@ -248,7 +260,9 @@ public class MigraMongoTest {
             containsString("Last Migration is in status ERROR"),
             containsString("fromVersion=1"),
             containsString("toVersion=1")));
-        migrationScripts.forEach(ms -> verify(ms, never()).migrate(mongoDatabase));
+        for (MongoMigrationScript ms : migrationScripts) {
+            verify(ms, never()).migrate(mongoDatabase);
+        }
     }
 
     @Test
@@ -271,7 +285,13 @@ public class MigraMongoTest {
         migrationScripts
             .stream()
             .filter(ms -> Integer.valueOf(ms.getMigrationInfo().getFromVersion()) >= 5)
-            .forEach(ms -> verify(ms).migrate(mongoDatabase));
+            .forEach(ms -> {
+                try {
+                    verify(ms).migrate(mongoDatabase);
+                } catch (Exception e) {
+                    throw new RuntimeException("Exception while migrating", e);
+                }
+            });
 
     }
 
@@ -365,7 +385,7 @@ public class MigraMongoTest {
         return script;
     }
 
-    private MongoMigrationScript mockMongoScript(String from, String to, Throwable throwable) {
+    private MongoMigrationScript mockMongoScript(String from, String to, Throwable throwable) throws Exception {
         final MongoMigrationScript script = mockMongoScript(from, to);
         Mockito.doThrow(throwable).when(script).migrate(mongoDatabase);
         return script;

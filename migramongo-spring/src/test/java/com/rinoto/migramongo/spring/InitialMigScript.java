@@ -4,7 +4,6 @@ import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.InitialMigrationInfo;
 import com.rinoto.migramongo.InitialMongoMigrationScript;
 
-// @InitialMongoMigrationScript(version = "1")
 public class InitialMigScript implements InitialMongoMigrationScript {
 
     @Override

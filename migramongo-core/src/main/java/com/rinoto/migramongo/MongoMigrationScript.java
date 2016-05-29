@@ -23,6 +23,6 @@ public interface MongoMigrationScript {
      * 
      * @param database mongodb to use
      */
-    void migrate(MongoDatabase database);
+    void migrate(MongoDatabase database) throws Exception;
 
 }
