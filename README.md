@@ -1,5 +1,6 @@
 # migramongo
 
+[![Maven Version](https://maven-badges.herokuapp.com/maven-central/com.github.rinoto.mongo/migramongo-core/badge.svg)](http://search.maven.org/#search|ga|1|a%3A%22migramongo-core%22)
 [![Build Status](https://travis-ci.org/rinoto/migramongo.svg?branch=master)](https://travis-ci.org/rinoto/migramongo) 
 [![Coverage Status](https://coveralls.io/repos/github/rinoto/migramongo/badge.svg?branch=master)](https://coveralls.io/github/rinoto/migramongo?branch=master)
 
@@ -172,10 +173,21 @@ public class MigraMongoController {
 
 ```
 
-#### How it works
+### Using migramongo without Spring
+It's basically the same as with Spring, with the difference that:
+* your migration script classes do not need to be a Spring Bean, the just must implement the interfaces
+* you need to provide a lookup mechanism when creating the migramongo instance. e.g.
+
+```java
+
+```
+
+
+### How it works
 The first time you call `MigraMongo.migrate()`, migramongo will look for Spring Beans implementing `InitialMongoMigrationScript`  or `MongoMigrationScript`. If found, they will be executed in the following order: 
 * first the `InitialMongoMigrationScript`  (there can be only one)
 * then, the  `MongoMigrationScript` having the `initialVersion` of the previous `InitialMongoMigrationScript` as `fromVersion`
 * then, the next `MongoMigrationScript` having the `toVersion` of the previous `MongoMigrationScript` as `fromVersion`
 * and so on...
 All that data is written in a collection on the mongo database called `_migramongo_history`. The next time you call `migrate`, only new scripts will be executed. If none available, nothing will be done.
+
