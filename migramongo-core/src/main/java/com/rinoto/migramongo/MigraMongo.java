@@ -7,6 +7,7 @@ import java.util.List;
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
 import com.rinoto.migramongo.dao.MigrationHistoryService;
+import com.rinoto.migramongo.lookup.ScriptLookupService;
 
 /**
  * Performs the migration of the scripts

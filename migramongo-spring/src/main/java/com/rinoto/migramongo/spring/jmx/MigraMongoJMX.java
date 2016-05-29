@@ -1,4 +1,4 @@
-package com.rinoto.migramongo.spring;
+package com.rinoto.migramongo.spring.jmx;
 
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedResource;

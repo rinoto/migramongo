@@ -29,14 +29,4 @@ public class MigrationInfo {
         return info;
     }
 
-    public MigrationInfo withModule(String module) {
-        this.module = module;
-        return this;
-    }
-
-    public MigrationInfo withInfo(String info) {
-        this.info = info;
-        return this;
-    }
-
 }

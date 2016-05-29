@@ -18,6 +18,7 @@ import com.google.gson.Gson;
 import com.rinoto.migramongo.MigraMongo;
 import com.rinoto.migramongo.MigraMongoStatus;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
+import com.rinoto.migramongo.spring.jmx.MigraMongoJMX;
 import com.rinoto.migramongo.MigrationEntry;
 
 @RunWith(MockitoJUnitRunner.class)

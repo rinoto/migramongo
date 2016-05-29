@@ -28,6 +28,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
 import com.rinoto.migramongo.dao.MigrationHistoryService;
+import com.rinoto.migramongo.lookup.ScriptLookupService;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MigraMongoTest {

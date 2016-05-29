@@ -31,17 +31,6 @@ public class MigraMongoStatus {
         return this;
     }
 
-    @Override
-    public String toString() {
-        return "MigraMongoStatus [status=" +
-            status +
-            ", message=" +
-            message +
-            ", appliedEntries=" +
-            migrationsApplied +
-            "]";
-    }
-
     public enum MigrationStatus {
             OK,
             ERROR,

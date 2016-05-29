@@ -1,4 +1,4 @@
-package com.rinoto.migramongo.spring;
+package com.rinoto.migramongo.spring.lookup;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -7,7 +7,7 @@ import org.springframework.context.ApplicationContext;
 
 import com.rinoto.migramongo.InitialMongoMigrationScript;
 import com.rinoto.migramongo.MongoMigrationScript;
-import com.rinoto.migramongo.ScriptLookupService;
+import com.rinoto.migramongo.lookup.ScriptLookupService;
 
 public class SpringScriptLookupService implements ScriptLookupService {
 

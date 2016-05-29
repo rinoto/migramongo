@@ -51,12 +51,7 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
     }
 
     public MongoCollection<Document> getMigramongoCollection() {
-        MongoCollection<Document> collection = this.database.getCollection(MIGRAMONGO_COLLECTION);
-        if (collection == null) {
-            this.database.createCollection(MIGRAMONGO_COLLECTION);
-            collection = this.database.getCollection(MIGRAMONGO_COLLECTION);
-        }
-        return collection;
+        return this.database.getCollection(MIGRAMONGO_COLLECTION);
     }
 
     @Override
@@ -117,10 +112,6 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         doc.put("statusMessage", migEntry.getStatusMessage());
         doc.put("repaired", migEntry.isRepaired());
         return doc;
-    }
-
-    MongoDatabase getDatabase() {
-        return database;
     }
 
     @Override
