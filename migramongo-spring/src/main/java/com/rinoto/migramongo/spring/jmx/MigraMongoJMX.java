@@ -27,4 +27,9 @@ public class MigraMongoJMX {
         return gson.toJson(migraMongo.dryRun());
     }
 
+    @ManagedOperation
+    public Boolean needsMigration() {
+        return !migraMongo.dryRun().migrationsApplied.isEmpty();
+    }
+
 }

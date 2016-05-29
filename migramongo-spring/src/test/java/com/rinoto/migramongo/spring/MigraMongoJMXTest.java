@@ -18,8 +18,8 @@ import com.google.gson.Gson;
 import com.rinoto.migramongo.MigraMongo;
 import com.rinoto.migramongo.MigraMongoStatus;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
-import com.rinoto.migramongo.spring.jmx.MigraMongoJMX;
 import com.rinoto.migramongo.MigrationEntry;
+import com.rinoto.migramongo.spring.jmx.MigraMongoJMX;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MigraMongoJMXTest {
@@ -69,6 +69,32 @@ public class MigraMongoJMXTest {
         //then
         final MigraMongoStatus status = new Gson().fromJson(jsonStatus, MigraMongoStatus.class);
         assertThat(status, samePropertyValuesAs(migraMongoStatus));
+    }
+
+    @Test
+    public void shouldReturnNeedsMigrationTrueWhenMigrationsToApply() {
+        //given 
+        final MigraMongoStatus migraMongoStatus = MigraMongoStatus.ok().addEntry(createMigrationEntry());
+        when(migraMongo.dryRun()).thenReturn(migraMongoStatus);
+
+        //when
+        final Boolean needsMigration = migraMongoJMX.needsMigration();
+
+        //then
+        assertThat(needsMigration, is(true));
+    }
+
+    @Test
+    public void shouldReturnNeedsMigrationFalseWhenNoMigrationsToApply() {
+        //given 
+        final MigraMongoStatus migraMongoStatus = MigraMongoStatus.ok();
+        when(migraMongo.dryRun()).thenReturn(migraMongoStatus);
+
+        //when
+        final Boolean needsMigration = migraMongoJMX.needsMigration();
+
+        //then
+        assertThat(needsMigration, is(false));
     }
 
     private MigrationEntry createMigrationEntry() {
