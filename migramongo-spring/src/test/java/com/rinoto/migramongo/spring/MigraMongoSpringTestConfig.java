@@ -16,6 +16,7 @@ import com.rinoto.migramongo.EmbeddedMongo;
 import com.rinoto.migramongo.MigraMongo;
 import com.rinoto.migramongo.dao.MigrationHistoryService;
 import com.rinoto.migramongo.dao.MongoMigrationHistoryService;
+import com.rinoto.migramongo.spring.jmx.MigraMongoJMX;
 
 @Configuration
 @Import(EmbeddedMongoConfig.class)
@@ -47,6 +48,11 @@ public class MigraMongoSpringTestConfig {
     @Bean
     public MigraMongo migraMongo() throws Exception {
         return new SpringMigraMongo(appContext, mongoDatabase(), migrationHistoryService());
+    }
+
+    @Bean
+    public MigraMongoJMX migraMongoJMX() throws Exception {
+        return new MigraMongoJMX(migraMongo());
     }
 
     @PreDestroy
