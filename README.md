@@ -46,6 +46,8 @@ The migration scripts are simple Java classes implementing the interfaces `Initi
 
 You can implement the interfaces in any Spring Bean in your code. You must have one bean implementing  `InitialMongoMigrationScript` (needed for the initial script), and can have many implementing   `MongoMigrationScript`.
 
+Example of `InitialMongoMigrationScript`:
+
 ```java
 @Component
 public class YourProjectMigration_001 implements InitialMongoMigrationScript {
@@ -61,26 +63,11 @@ public class YourProjectMigration_001 implements InitialMongoMigrationScript {
     }
 }
 ```
+Example of `MongoMigrationScript`:
 
 ```java
 @Component
-public class YourProjectMigration_001_002 implements InitialMongoMigrationScript {
-
-    @Override
-    public InitialMigrationInfo getMigrationInfo() {
-        return new InitialMigrationInfo("001");
-    }
-
-    @Override
-    public void migrate(MongoDatabase database) throws Exception {
-        //write your migration code here
-    }
-}
-```
-
-```java
-@Component
-public class YourProjectMigration_001 implements MongoMigrationScript {
+public class YourProjectMigration_001_002 implements MongoMigrationScript {
 
     @Override
     public MigrationInfo getMigrationInfo() {
@@ -147,6 +134,42 @@ public class MigraMongoSpringSampleConfiguration {
         return new MigraMongoJMX(migraMongo());
     }
 }
+```
+
+The `MigraMongoJMX` operations will call the migramongo methods, and return a JSON representation of the `MigraMongoStatus` delivered, containing the status and the migrations applied. E.g.
+
+```json
+{
+    "status": "OK",
+    "message": "Everything ok",
+    "migrationsApplied": [{
+        "fromVersion": "3.0",
+        "createdAt": "May 29, 2016 6:06:35 PM",
+        "status": "OK",
+        "updatedAt": "May 29, 2016 6:06:35 PM",
+        "repaired": false
+    }]
+}
+```
+
+
+You can also register a Spring Controller that calls the migramongo methods. Just make sure you secure it properly!
+
+```java
+@RestController
+@RequestMapping("/mongo")
+public class MigraMongoController {
+
+    @Autowired
+    private MigraMongo migraMongo;
+
+    @RequestMapping(value = "/migration", method = RequestMethod.PUT, produces = {"application/json"})
+    public ResponseEntity<MigraMongoStatus> migrate() {
+        return new ResponseEntity<>(migraMongo.migrate(), HttpStatus.OK);
+    }
+
+}
+
 ```
 
 #### How it works
