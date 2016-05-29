@@ -26,6 +26,9 @@ Register `Migramongo` with an instance of `SpringMigraMongo` in a `@Configuratio
 @Configuration
 public class MigraMongoSpringSampleConfiguration {
 
+    @Autowired
+    private ApplicationContext appContext;
+
     @Bean
     public MigraMongo migraMongo() throws Exception {
         //NOTE - it is up to you how you get the reference to the com.mongodb.client.MongoDatabase
@@ -45,10 +48,10 @@ public class MyStartupBean {
    @Autowired
    private MigraMongo migraMongo;
 
-    @PostConstruct
-    public void executeMigrationScripts throws Exception {
+   @PostConstruct
+   public void executeMigrationScripts throws Exception {
         migraMongo.migrate();
-    }
+   }
 
 }
 ```
