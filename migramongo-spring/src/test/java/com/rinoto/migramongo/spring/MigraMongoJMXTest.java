@@ -1,6 +1,8 @@
 package com.rinoto.migramongo.spring;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
@@ -117,7 +119,11 @@ public class MigraMongoJMXTest {
             .fromJson(history, new TypeToken<List<MigrationEntry>>() {}.getType());
         assertThat(entriesRetrieved, hasSize(entries.size()));
         for (int i = 0; i < entries.size(); i++ ) {
-            assertThat(entries.get(i), samePropertyValuesAs(entriesRetrieved.get(i)));
+            assertThat(
+                entries.get(i),
+                allOf(
+                    hasProperty("fromVersion", is(entriesRetrieved.get(i).getFromVersion())),
+                    hasProperty("toVersion", is(entriesRetrieved.get(i).getToVersion()))));
         }
     }
 
