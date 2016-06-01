@@ -32,4 +32,9 @@ public class MigraMongoJMX {
         return !migraMongo.dryRun().migrationsApplied.isEmpty();
     }
 
+    @ManagedOperation
+    public String history() {
+        return gson.toJson(migraMongo.getMigrationEntries());
+    }
+
 }

@@ -3,8 +3,13 @@ package com.rinoto.migramongo.dao;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -56,9 +61,8 @@ public class MongoMigrationHistoryServiceTest {
     public void shouldSetMigrationStatusToFinished() throws Exception {
         // given
         addMigration(new InitialMigrationInfo("1"));
-        final MigrationEntry migInProgress = migrationHistoryService.insertMigrationStatusInProgress(new MigrationInfo(
-            "1",
-            "2"));
+        final MigrationEntry migInProgress = migrationHistoryService
+            .insertMigrationStatusInProgress(new MigrationInfo("1", "2"));
         assertThat(
             migrationHistoryService.getLastMigrationApplied(),
             allOf(
@@ -82,9 +86,8 @@ public class MongoMigrationHistoryServiceTest {
     public void shouldSetMigrationStatusToError() throws Exception {
         // given
         addMigration(new InitialMigrationInfo("1"));
-        final MigrationEntry migInProgress = migrationHistoryService.insertMigrationStatusInProgress(new MigrationInfo(
-            "1",
-            "2"));
+        final MigrationEntry migInProgress = migrationHistoryService
+            .insertMigrationStatusInProgress(new MigrationInfo("1", "2"));
         assertThat(
             migrationHistoryService.getLastMigrationApplied(),
             allOf(
@@ -93,8 +96,9 @@ public class MongoMigrationHistoryServiceTest {
                 hasProperty("toVersion", is("2"))));
 
         // when 
-        migrationHistoryService
-            .setMigrationStatusToFailed(migInProgress, new RuntimeException("manually set to error"));
+        migrationHistoryService.setMigrationStatusToFailed(
+            migInProgress,
+            new RuntimeException("manually set to error"));
 
         //then
         assertThat(
@@ -110,9 +114,8 @@ public class MongoMigrationHistoryServiceTest {
     public void shouldSetMigrationStatusToRepaired() throws Exception {
         // given
         addMigration(new InitialMigrationInfo("1"));
-        final MigrationEntry migInProgress = migrationHistoryService.insertMigrationStatusInProgress(new MigrationInfo(
-            "1",
-            "2"));
+        final MigrationEntry migInProgress = migrationHistoryService
+            .insertMigrationStatusInProgress(new MigrationInfo("1", "2"));
         assertThat(
             migrationHistoryService.getLastMigrationApplied(),
             allOf(
@@ -155,6 +158,34 @@ public class MongoMigrationHistoryServiceTest {
         assertThat(
             migrationHistoryService.findMigration("1", "2"),
             allOf(hasProperty("fromVersion", is("1")), hasProperty("toVersion", is("2"))));
+    }
+
+    @Test
+    public void shouldFindAllMigrationEntries() throws Exception {
+        // given
+        addMigration(new InitialMigrationInfo("1"));
+        addMigration(new MigrationInfo("1", "2"));
+
+        // when 
+        final Iterable<MigrationEntry> allMigrationsApplied = migrationHistoryService.getAllMigrationsApplied();
+
+        //then
+        final List<MigrationEntry> entriesFound = StreamSupport
+            .stream(allMigrationsApplied.spliterator(), false)
+            .collect(Collectors.toList());
+        assertThat(entriesFound, hasSize(2));
+    }
+
+    @Test
+    public void shouldNotFindMigrationEntriesIfNoneExist() throws Exception {
+        // when 
+        final Iterable<MigrationEntry> allMigrationsApplied = migrationHistoryService.getAllMigrationsApplied();
+
+        //then
+        final List<MigrationEntry> entriesFound = StreamSupport
+            .stream(allMigrationsApplied.spliterator(), false)
+            .collect(Collectors.toList());
+        assertThat(entriesFound, hasSize(0));
     }
 
     @Test

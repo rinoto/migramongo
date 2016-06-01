@@ -3,6 +3,8 @@ package com.rinoto.migramongo;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
@@ -215,6 +217,17 @@ public class MigraMongo {
             rest);
         candidates.addAll(nextMigScriptsRec);
         return candidates;
+    }
+
+    /**
+     * Returns the migration entries that have been applied
+     * 
+     * @return
+     */
+    public List<MigrationEntry> getMigrationEntries() {
+        return StreamSupport
+            .stream(migrationEntryService.getAllMigrationsApplied().spliterator(), false)
+            .collect(Collectors.toList());
     }
 
 }

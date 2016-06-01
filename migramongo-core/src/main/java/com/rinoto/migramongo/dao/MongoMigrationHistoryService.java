@@ -80,6 +80,11 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         return mapMigrationEntry(doc);
     }
 
+    @Override
+    public Iterable<MigrationEntry> getAllMigrationsApplied() {
+        return getMigramongoCollection().find().sort(new Document("createdAt", 1)).map(d -> mapMigrationEntry(d));
+    }
+
     private MigrationEntry mapMigrationEntry(Document doc) {
         if (doc == null) {
             return null;

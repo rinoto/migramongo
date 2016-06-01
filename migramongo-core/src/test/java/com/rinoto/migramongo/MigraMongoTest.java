@@ -47,9 +47,7 @@ public class MigraMongoTest {
         // mocking
         when(migEntryService.insertMigrationStatusInProgress(any(MigrationInfo.class))).thenAnswer(i -> {
             final MigrationInfo migInfo = (MigrationInfo) i.getArguments()[0];
-            final MigrationEntry e = new MigrationEntry();
-            e.setFromVersion(migInfo.getFromVersion());
-            e.setToVersion(migInfo.getToVersion());
+            final MigrationEntry e = createMigrationEntry(migInfo.getFromVersion(), migInfo.getToVersion(), null);
             return e;
         });
         when(migEntryService.setMigrationStatusToFinished(any(MigrationEntry.class))).thenAnswer(i -> {
@@ -190,10 +188,7 @@ public class MigraMongoTest {
     }
 
     private MigrationEntry mockLastEntry(String from, String to) {
-        final MigrationEntry lastEntry = new MigrationEntry();
-        lastEntry.setFromVersion(from);
-        lastEntry.setToVersion(to);
-        lastEntry.setStatus(MigrationStatus.OK);
+        final MigrationEntry lastEntry = createMigrationEntry(from, to, MigrationStatus.OK);
         when(migEntryService.getLastMigrationApplied()).thenReturn(lastEntry);
         return lastEntry;
     }
@@ -372,12 +367,30 @@ public class MigraMongoTest {
         migraMongo.migrate();
     }
 
+    @Test
+    public void shouldReturnAppliedEntries() throws Exception {
+        // given
+        when(migEntryService.getAllMigrationsApplied()).thenReturn(
+            Arrays.asList(
+                createMigrationEntry("1.0", "2.0", MigrationStatus.OK),
+                createMigrationEntry("2.0", "3.0", MigrationStatus.OK)));
+        // when
+        final List<MigrationEntry> migrationEntries = migraMongo.getMigrationEntries();
+        // then
+        assertThat(migrationEntries, hasSize(2));
+    }
+
     private void mockEntry(String fromVersion, String toVersion, MigrationStatus status) {
+        final MigrationEntry migEntry = createMigrationEntry(fromVersion, toVersion, status);
+        when(migEntryService.findMigration(fromVersion, toVersion)).thenReturn(migEntry);
+    }
+
+    private MigrationEntry createMigrationEntry(String fromVersion, String toVersion, MigrationStatus status) {
         final MigrationEntry migEntry = new MigrationEntry();
         migEntry.setFromVersion(fromVersion);
         migEntry.setToVersion(toVersion);
         migEntry.setStatus(status);
-        when(migEntryService.findMigration(fromVersion, toVersion)).thenReturn(migEntry);
+        return migEntry;
     }
 
     private MongoMigrationScript mockMongoScript(String from, String to) {

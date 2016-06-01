@@ -54,4 +54,11 @@ public interface MigrationHistoryService {
      */
     MigrationEntry findMigration(String fromVersion, String toVersion);
 
+    /**
+     * Returns all the migration entries that have been applied, ordered by date asc.
+     * 
+     * @return all migrations applied
+     */
+    Iterable<MigrationEntry> getAllMigrationsApplied();
+
 }

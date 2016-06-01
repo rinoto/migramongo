@@ -6,8 +6,12 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
+import org.bson.types.ObjectId;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -15,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.rinoto.migramongo.MigraMongo;
 import com.rinoto.migramongo.MigraMongoStatus;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
@@ -46,7 +51,7 @@ public class MigraMongoJMXTest {
     @Test
     public void shouldReturnCorrectJsonWhenMigrationsApplied() {
         //given 
-        final MigraMongoStatus migraMongoStatus = MigraMongoStatus.ok().addEntry(createMigrationEntry());
+        final MigraMongoStatus migraMongoStatus = MigraMongoStatus.ok().addEntry(createMigrationEntry("3.0", "4.0"));
         when(migraMongo.migrate()).thenReturn(migraMongoStatus);
 
         //when
@@ -60,7 +65,7 @@ public class MigraMongoJMXTest {
     @Test
     public void shouldReturnCorrectJsonWhenMigrationsAppliedInDryRun() {
         //given 
-        final MigraMongoStatus migraMongoStatus = MigraMongoStatus.ok().addEntry(createMigrationEntry());
+        final MigraMongoStatus migraMongoStatus = MigraMongoStatus.ok().addEntry(createMigrationEntry("3.0", "4.0"));
         when(migraMongo.dryRun()).thenReturn(migraMongoStatus);
 
         //when
@@ -74,7 +79,7 @@ public class MigraMongoJMXTest {
     @Test
     public void shouldReturnNeedsMigrationTrueWhenMigrationsToApply() {
         //given 
-        final MigraMongoStatus migraMongoStatus = MigraMongoStatus.ok().addEntry(createMigrationEntry());
+        final MigraMongoStatus migraMongoStatus = MigraMongoStatus.ok().addEntry(createMigrationEntry("3.0", "4.0"));
         when(migraMongo.dryRun()).thenReturn(migraMongoStatus);
 
         //when
@@ -97,10 +102,45 @@ public class MigraMongoJMXTest {
         assertThat(needsMigration, is(false));
     }
 
-    private MigrationEntry createMigrationEntry() {
+    @Test
+    public void shouldReturnAppliedMigrations() {
+        //given 
+        final List<MigrationEntry> entries = Arrays
+            .asList(createMigrationEntry("3.0", "4.0"), createMigrationEntry("4.0", "5.0"));
+        when(migraMongo.getMigrationEntries()).thenReturn(entries);
+
+        //when
+        final String history = migraMongoJMX.history();
+
+        //then
+        final List<MigrationEntry> entriesRetrieved = new Gson()
+            .fromJson(history, new TypeToken<List<MigrationEntry>>() {}.getType());
+        assertThat(entriesRetrieved, hasSize(entries.size()));
+        for (int i = 0; i < entries.size(); i++ ) {
+            assertThat(entries.get(i), samePropertyValuesAs(entriesRetrieved.get(i)));
+        }
+    }
+
+    @Test
+    public void shouldNotReturnAppliedMigrationsWhenNoneAvailable() {
+        //given 
+        when(migraMongo.getMigrationEntries()).thenReturn(Collections.emptyList());
+
+        //when
+        final String history = migraMongoJMX.history();
+
+        //then
+        final List<MigrationEntry> entriesRetrieved = new Gson()
+            .fromJson(history, new TypeToken<List<MigrationEntry>>() {}.getType());
+        assertThat(entriesRetrieved, hasSize(0));
+    }
+
+    private MigrationEntry createMigrationEntry(String fromVersion, String toVersion) {
         final MigrationEntry entry = new MigrationEntry();
+        entry.setId(ObjectId.get());
         entry.setCreatedAt(new Date());
-        entry.setFromVersion("3.0");
+        entry.setFromVersion(fromVersion);
+        entry.setToVersion(toVersion);
         entry.setStatus(MigrationStatus.IN_PROGRESS);
         entry.setUpdatedAt(new Date());
         return entry;
