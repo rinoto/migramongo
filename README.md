@@ -19,7 +19,7 @@ Add the `migramongo-spring` dependency to your project:
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring</artifactId>
-    <version>0.1</version>
+    <version>0.3</version>
 </dependency>
 ```
 #### Configuration
@@ -175,6 +175,16 @@ public class MigraMongoController {
 
 ### Using migramongo without Spring
 It's basically the same as with Spring, with the difference that:
+* the dependency to use is `migramongo-core` 
+
+```xml
+<dependency>
+    <groupId>com.github.rinoto.mongo</groupId>
+    <artifactId>migramongo-core</artifactId>
+    <version>check the latest</version>
+</dependency>
+```
+
 * your migration script classes do not need to be a Spring Bean, the just must implement the interfaces
 * you need to provide a lookup mechanism when creating the migramongo instance. e.g.
 
