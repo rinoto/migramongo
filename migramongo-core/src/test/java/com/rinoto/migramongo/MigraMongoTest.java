@@ -109,6 +109,16 @@ public class MigraMongoTest {
 	}
 
 	@Test
+	public void shouldReturnStatusInDryRunWhenExceptionThrown() throws Exception {
+		// given - if no initial exists, exception will be thrown
+		// when
+		final MigraMongoStatus status = migraMongo.dryRun();
+		// then
+		assertThat(status.status, is(MigrationStatus.ERROR));
+		assertThat(status.migrationsApplied, hasSize(0));
+	}
+
+	@Test
 	public void shouldMigrateInitialScriptAndOneNormalOneWhenNoMigrationExists() throws Exception {
 		// given
 		final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
