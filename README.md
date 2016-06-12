@@ -7,10 +7,14 @@
 ### Introduction
 
 `Migramongo` is a tool to help you execute and mantain the history of the migration scripts in your Mongo Database.
-You can use `migramongo` [with](#migraMongoWithSpring) or [without](#migraMongoWithoutSpring).
+The biggest different with respect to other existing tools is that Migramongo forces you to write the scripts in plain Java classes (or Spring beans), instead of Javascript, xml, or whatever. 
+
+You can use `migramongo` [with](#migraMongoWithSpring) or [without](#migraMongoWithoutSpring) Spring.
 
 
 ### <a name="migraMongoWithSpring"></a>Using migramongo with Spring
+
+If you are already using Spring in your project, you should go for this alternative. The biggest advantage is that the migration scripts you write are also Spring Beans, and, as such, you can inject in them any bean dependency (or configuration, add aspects, whatever...).
 
 #### Dependencies
 
@@ -43,16 +47,23 @@ public class MigraMongoSpringSampleConfiguration {
 }
 ```
 
-### Writing the migration scripts
-The migration scripts are simple Java classes implementing the interfaces `InitialMongoMigrationScript` (for the initial script), or `MongoMigrationScript` (for the rest of migration scripts). Both interfaces define 2 methods: one that delivers the migration information (`getMigrationInfo()`) and another one that executes the migration (`migrate()`).
+You can find an example [here](https://github.com/rinoto/migramongo/blob/master/migramongo-spring/src/test/java/com/rinoto/migramongo/spring/MigraMongoSpringTestConfig.java#L51).
 
-You can implement the interfaces in any Spring Bean in your code. You must have one bean implementing  `InitialMongoMigrationScript` (needed for the initial script), and can have many implementing   `MongoMigrationScript`.
+### Writing the migration scripts
+The migration scripts are simple Java classes implementing the interfaces [InitialMongoMigrationScript](https://github.com/rinoto/migramongo/blob/master/migramongo-core/src/main/java/com/rinoto/migramongo/InitialMongoMigrationScript.java) (for the initial script), or [MongoMigrationScript](https://github.com/rinoto/migramongo/blob/master/migramongo-core/src/main/java/com/rinoto/migramongo/MongoMigrationScript.java) (for the rest of migration scripts). 
+Both interfaces define 2 methods: one that delivers the migration information ([getMigrationInfo()](https://github.com/rinoto/migramongo/blob/master/migramongo-core/src/main/java/com/rinoto/migramongo/MongoMigrationScript.java#L19)) and another one that executes the migration ([migrate()](https://github.com/rinoto/migramongo/blob/master/migramongo-core/src/main/java/com/rinoto/migramongo/MongoMigrationScript.java#L26)).
+
+You can implement the interfaces in any Spring Bean in your code. You must have one bean implementing  `InitialMongoMigrationScript` (needed for the initial script), and can have many implementing `MongoMigrationScript`.
 
 Example of `InitialMongoMigrationScript`:
 
 ```java
 @Component
 public class YourProjectMigration_001 implements InitialMongoMigrationScript {
+
+    //optional - you can inject your beans in the migration scripts
+    @Inject
+    OneOfYourBeans yourBeanDependency;
 
     @Override
     public InitialMigrationInfo getMigrationInfo() {
@@ -84,6 +95,7 @@ public class YourProjectMigration_001_002 implements MongoMigrationScript {
 }
 ```
 
+You can find more examples in the [tests](https://github.com/rinoto/migramongo/tree/master/migramongo-spring/src/test/java/com/rinoto/migramongo/spring).
 
 
 Ideally you would place all your migration beans in a `migration` package. E.g.
@@ -98,7 +110,9 @@ Ideally you would place all your migration beans in a `migration` package. E.g.
 
 #### Execution
 
-`MigraMongo` offers a couple of methods to execute the migration scripts. 
+`MigraMongo` offers a couple of methods to execute the migration scripts.
+
+##### Migrating at startup 
 The easiest way to make sure that all your scripts have been executed is to call the `migrate` method at the startup of your application (i.e. in any `@PostConstruct`):
 
 ```java
@@ -117,7 +131,10 @@ public class MyStartupBean {
 ```
 
 But this option may lead to problems in a distributed environment, where more than 1 application can startup at the same time.
-If you want to have more control over the execution of the scripts, you can register an MBean instead, that will expose the `MigraMongo` methods:
+
+##### Calling the migration explicitly via JMX
+
+If you want to have more control over the execution of the scripts, you can register an MBean instead (see [MigraMongoJMX](https://github.com/rinoto/migramongo/blob/master/migramongo-spring/src/main/java/com/rinoto/migramongo/spring/jmx/MigraMongoJMX.java)), that will expose the `MigraMongo` methods:
 
 
 ```java
@@ -138,7 +155,7 @@ public class MigraMongoSpringSampleConfiguration {
 }
 ```
 
-The `MigraMongoJMX` operations will call the migramongo methods, and return a JSON representation of the `MigraMongoStatus` delivered, containing the status and the migrations applied. E.g.
+The [MigraMongoJMX](https://github.com/rinoto/migramongo/blob/master/migramongo-spring/src/main/java/com/rinoto/migramongo/spring/jmx/MigraMongoJMX.java) operations will call the migramongo methods, and return a JSON representation of the `MigraMongoStatus` delivered, containing the status and the migrations applied. E.g.
 
 ```json
 {
@@ -154,8 +171,13 @@ The `MigraMongoJMX` operations will call the migramongo methods, and return a JS
 }
 ```
 
+`MigraMongoJMX` offers also a couple of interesting methods for getting the migration status, running the migration asynchronously, repairing some migration history entries, etc.. 
+Have a look at the  [source code](https://github.com/rinoto/migramongo/blob/master/migramongo-spring/src/main/java/com/rinoto/migramongo/spring/jmx/MigraMongoJMX.java) for more information.
+
+##### Calling the migration explicitly calling a HTTP Endpoint.
 
 You can also register a Spring Controller that calls the migramongo methods. Just make sure you secure it properly!
+The following is an example of registering a Controller and calling the migramongo methods from it:
 
 ```java
 @RestController
@@ -186,7 +208,7 @@ It's basically the same as with Spring, with the difference that:
 </dependency>
 ```
 
-* your migration script classes do not need to be a Spring Bean, the just must implement the interfaces
+* your migration script classes do not need to be a Spring Bean, they just must implement the interfaces
 * you need to provide a lookup mechanism when creating the migramongo instance. e.g.
 
 ```java
@@ -195,10 +217,24 @@ It's basically the same as with Spring, with the difference that:
 
 
 ### How it works
-The first time you call `MigraMongo.migrate()`, migramongo will look for Spring Beans implementing `InitialMongoMigrationScript`  or `MongoMigrationScript`. If found, they will be executed in the following order: 
+The first time you call `MigraMongo.migrate()`, migramongo will look for classes (or Spring Beans) implementing `InitialMongoMigrationScript`  or `MongoMigrationScript`. If found, they will be executed in the following order: 
 * first the `InitialMongoMigrationScript`  (there can be only one)
 * then, the  `MongoMigrationScript` having the `initialVersion` of the previous `InitialMongoMigrationScript` as `fromVersion`
 * then, the next `MongoMigrationScript` having the `toVersion` of the previous `MongoMigrationScript` as `fromVersion`
 * and so on...
-All that data is written in a collection on the mongo database called `_migramongo_history`. The next time you call `migrate`, only new scripts will be executed. If none available, nothing will be done.
+All that data is written in a collection on the mongo database called `_migramongo_upgrade_info`. The next time you call `migrate()`, only new scripts will be executed. If none available, nothing will be done.
+#### and if something goes wrong?
+If one of the migration scripts throws an error, the migration process will be interrupted, and the error will be delivered. 
+The entry that threw the error will be marked as `ERROR` and the error will have to be fixed (probably manually).
+After the error has been fixed, you can call `MigraMongo.repair` to mark the entry in the migration history as repaired, and be able to go on with the migration.
 
+### Why do I have to specify a `from` and a `to` version? 
+If you ask yourself this question, consider yourself a happy person for not having had to deal with migration scripts in different branches of the application.
+Imagine we only have `version`, and we have migrated our code until version 5. 
+* At some point in time, we branch the code (we have `trunk` and `branchA`).
+* `branchA` gets deployed in Production, and we develop in `trunk` further.
+* then we create the version script 6 for `trunk` (because of a new feature).
+* and afterwards we need to create a new migration script for `branchA` because of a bug found in the system.
+
+Which version do we give to the script for `branchA`?
+If we use `from` and `to`, the version `6` would actually be `from5To6` and the branch one `from5To5_1`. Then, we just need to create an empty additional `from5_1to6` in `trunk`, and everybody is happy.
