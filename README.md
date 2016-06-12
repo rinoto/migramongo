@@ -7,9 +7,10 @@
 ### Introduction
 
 `Migramongo` is a tool to help you execute and mantain the history of the migration scripts in your Mongo Database.
+You can use `migramongo` [with](#migraMongoWithSpring) or [without](#migraMongoWithoutSpring).
 
 
-### Using migramongo with Spring
+### <a name="migraMongoWithSpring"></a>Using migramongo with Spring
 
 #### Dependencies
 
@@ -19,7 +20,7 @@ Add the `migramongo-spring` dependency to your project:
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring</artifactId>
-    <version>0.3</version>
+    <version>0.4</version>
 </dependency>
 ```
 #### Configuration
@@ -173,7 +174,7 @@ public class MigraMongoController {
 
 ```
 
-### Using migramongo without Spring
+### <a name="migraMongoWithoutSpring"></a>Using migramongo without Spring
 It's basically the same as with Spring, with the difference that:
 * the dependency to use is `migramongo-core` 
 
