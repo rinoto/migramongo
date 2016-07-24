@@ -56,7 +56,7 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
 		return migEntry;
 	}
 
-	public MongoCollection<Document> getMigramongoCollection() {
+	MongoCollection<Document> getMigramongoCollection() {
 		return this.database.getCollection(MIGRAMONGO_COLLECTION);
 	}
 

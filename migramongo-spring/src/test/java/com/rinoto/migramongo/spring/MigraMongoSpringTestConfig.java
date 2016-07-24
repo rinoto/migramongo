@@ -15,7 +15,9 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.EmbeddedMongo;
 import com.rinoto.migramongo.MigraMongo;
+import com.rinoto.migramongo.dao.LockService;
 import com.rinoto.migramongo.dao.MigrationHistoryService;
+import com.rinoto.migramongo.dao.MongoLockService;
 import com.rinoto.migramongo.dao.MongoMigrationHistoryService;
 import com.rinoto.migramongo.spring.jmx.MigraMongoJMX;
 
@@ -44,6 +46,11 @@ public class MigraMongoSpringTestConfig {
 	@Bean
 	public MigrationHistoryService migrationHistoryService() throws Exception {
 		return new MongoMigrationHistoryService(mongoDatabase());
+	}
+
+	@Bean
+	public LockService lockService() throws Exception {
+		return new MongoLockService(mongoDatabase());
 	}
 
 	@Bean
