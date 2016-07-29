@@ -41,12 +41,16 @@ public class MigraMongoStatus {
 	}
 
 	public enum MigrationStatus {
-		OK, ERROR, IN_PROGRESS;
+		OK, LOCK_NOT_ACQUIRED, ERROR, IN_PROGRESS;
 	}
 
 	@Override
 	public String toString() {
 		return "[status=" + status + ", message=" + message + ", migrationsApplied=" + migrationsApplied + "]";
+	}
+
+	public static MigraMongoStatus lockNotAcquired() {
+		return new MigraMongoStatus(MigrationStatus.LOCK_NOT_ACQUIRED, "Couldn't obtain lock - doing nothing");
 	}
 
 }

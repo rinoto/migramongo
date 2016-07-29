@@ -30,6 +30,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
+import com.rinoto.migramongo.dao.LockService;
 import com.rinoto.migramongo.dao.MigrationHistoryService;
 import com.rinoto.migramongo.lookup.ScriptLookupService;
 
@@ -42,6 +43,8 @@ public class MigraMongoTest {
 	MigrationHistoryService migEntryService;
 	@Mock
 	ScriptLookupService lookupService;
+	@Mock
+	LockService lockService;
 	@Mock
 	MongoDatabase mongoDatabase;
 
@@ -58,13 +61,14 @@ public class MigraMongoTest {
 			entry.setStatus(MigrationStatus.OK);
 			return entry;
 		});
-		when(migEntryService.setMigrationStatusToFailed(any(MigrationEntry.class), any(Exception.class))).thenAnswer(
-				i -> {
+		when(migEntryService.setMigrationStatusToFailed(any(MigrationEntry.class), any(Exception.class)))
+				.thenAnswer(i -> {
 					final MigrationEntry entry = (MigrationEntry) i.getArguments()[0];
 					entry.setStatus(MigrationStatus.ERROR);
 					entry.setStatusMessage(((Exception) i.getArguments()[1]).getMessage());
 					return entry;
 				});
+		when(lockService.acquireLock()).thenReturn(true);
 	}
 
 	@Test
@@ -172,14 +176,13 @@ public class MigraMongoTest {
 		assertThat(status.status, is(MigrationStatus.OK));
 		assertThat(status.migrationsApplied, hasSize(4));
 		verify(mockInitialScript).migrate(mongoDatabase);
-		migrationScripts.stream().filter(ms -> ms.getMigrationInfo().getFromVersion().matches("[0-9]*"))
-				.forEach(ms -> {
-					try {
-						verify(ms).migrate(mongoDatabase);
-					} catch (Exception e) {
-						throw new RuntimeException("Exception while migrating", e);
-					}
-				});
+		migrationScripts.stream().filter(ms -> ms.getMigrationInfo().getFromVersion().matches("[0-9]*")).forEach(ms -> {
+			try {
+				verify(ms).migrate(mongoDatabase);
+			} catch (Exception e) {
+				throw new RuntimeException("Exception while migrating", e);
+			}
+		});
 	}
 
 	@Test
@@ -238,10 +241,8 @@ public class MigraMongoTest {
 		// then
 		assertThat(status.status, is(MigrationStatus.ERROR));
 		assertThat(status.migrationsApplied, hasSize(2));
-		assertThat(
-				status.message,
-				allOf(containsString("fromVersion '2'"), containsString("toVersion '8'"),
-						containsString("script failing")));
+		assertThat(status.message, allOf(containsString("fromVersion '2'"), containsString("toVersion '8'"),
+				containsString("script failing")));
 		verify(migrationScripts.get(0)).migrate(mongoDatabase);
 		verify(migrationScripts.get(1)).migrate(mongoDatabase);
 		verify(migrationScripts.get(2), never()).migrate(mongoDatabase);
@@ -262,10 +263,8 @@ public class MigraMongoTest {
 		// then
 		assertThat(status.status, is(MigrationStatus.ERROR));
 		assertThat(status.migrationsApplied, hasSize(0));
-		assertThat(
-				status.message,
-				allOf(containsString("Last Migration is in status ERROR"), containsString("fromVersion=1"),
-						containsString("toVersion=1")));
+		assertThat(status.message, allOf(containsString("Last Migration is in status ERROR"),
+				containsString("fromVersion=1"), containsString("toVersion=1")));
 		for (MongoMigrationScript ms : migrationScripts) {
 			verify(ms, never()).migrate(mongoDatabase);
 		}
@@ -328,8 +327,8 @@ public class MigraMongoTest {
 		final MigraMongoStatus status = migraMongo.repair("4", "5");
 		// then
 		assertThat(status.status, is(MigrationStatus.OK));
-		assertThat(status.message, containsString("changed from '" + MigrationStatus.ERROR + "' to '"
-				+ MigrationStatus.OK + "'"));
+		assertThat(status.message,
+				containsString("changed from '" + MigrationStatus.ERROR + "' to '" + MigrationStatus.OK + "'"));
 		assertThat(status.migrationsApplied, hasSize(1));
 	}
 
@@ -341,8 +340,8 @@ public class MigraMongoTest {
 		final MigraMongoStatus status = migraMongo.repair("4", "5");
 		// then
 		assertThat(status.status, is(MigrationStatus.OK));
-		assertThat(status.message, containsString("changed from '" + MigrationStatus.IN_PROGRESS + "' to '"
-				+ MigrationStatus.OK + "'"));
+		assertThat(status.message,
+				containsString("changed from '" + MigrationStatus.IN_PROGRESS + "' to '" + MigrationStatus.OK + "'"));
 		assertThat(status.migrationsApplied, hasSize(1));
 	}
 
@@ -373,8 +372,8 @@ public class MigraMongoTest {
 	@Test
 	public void shouldReturnAppliedEntries() throws Exception {
 		// given
-		when(migEntryService.getAllMigrationsApplied()).thenReturn(
-				Arrays.asList(createMigrationEntry("1.0", "2.0", MigrationStatus.OK),
+		when(migEntryService.getAllMigrationsApplied())
+				.thenReturn(Arrays.asList(createMigrationEntry("1.0", "2.0", MigrationStatus.OK),
 						createMigrationEntry("2.0", "3.0", MigrationStatus.OK)));
 		// when
 		final List<MigrationEntry> migrationEntries = migraMongo.getMigrationEntries();
@@ -404,8 +403,8 @@ public class MigraMongoTest {
 	@Test
 	public void shouldDeliverOkStatusWhenEverythingOk() throws Exception {
 		// given
-		when(migEntryService.findMigrations("1")).thenReturn(
-				Arrays.asList(createMigrationEntry("1", "2", MigrationStatus.OK)));
+		when(migEntryService.findMigrations("1"))
+				.thenReturn(Arrays.asList(createMigrationEntry("1", "2", MigrationStatus.OK)));
 		// when
 		final MigraMongoStatus status = migraMongo.status("1");
 		// then
@@ -416,8 +415,8 @@ public class MigraMongoTest {
 	@Test
 	public void shouldDeliverInProgressStatusWhenAtLeastOneEntryIsInProgress() throws Exception {
 		// given
-		when(migEntryService.findMigrations("1")).thenReturn(
-				Arrays.asList(createMigrationEntry("1", "2", MigrationStatus.OK),
+		when(migEntryService.findMigrations("1"))
+				.thenReturn(Arrays.asList(createMigrationEntry("1", "2", MigrationStatus.OK),
 						createMigrationEntry("1", "2", MigrationStatus.IN_PROGRESS),
 						createMigrationEntry("1", "2", MigrationStatus.OK)));
 		// when
@@ -430,8 +429,8 @@ public class MigraMongoTest {
 	@Test
 	public void shouldDeliverErrorStatusWhenAtLeastOneEntryIsInProgress() throws Exception {
 		// given
-		when(migEntryService.findMigrations("1")).thenReturn(
-				Arrays.asList(createMigrationEntry("1", "2", MigrationStatus.OK),
+		when(migEntryService.findMigrations("1"))
+				.thenReturn(Arrays.asList(createMigrationEntry("1", "2", MigrationStatus.OK),
 						createMigrationEntry("1", "2", MigrationStatus.ERROR),
 						createMigrationEntry("1", "2", MigrationStatus.OK)));
 		// when
@@ -450,6 +449,24 @@ public class MigraMongoTest {
 		// then
 		assertThat(status.status, is(MigrationStatus.OK));
 		assertThat(status.migrationsApplied, hasSize(0));
+	}
+
+	@Test
+	public void shouldNotMigrateIfItCannotAcquireLock() {
+		// given
+		when(lockService.acquireLock()).thenReturn(false);
+		// when
+		final MigraMongoStatus status = migraMongo.migrate();
+		// then
+		assertThat(status.status, is(MigrationStatus.LOCK_NOT_ACQUIRED));
+	}
+
+	@Test
+	public void shouldReleaseLockWhenMigratingSync() {
+		// when
+		migraMongo.migrate();
+		// then
+		verify(lockService).releaseLock();
 	}
 
 	private void mockEntry(String fromVersion, String toVersion, MigrationStatus status) {

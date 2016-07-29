@@ -3,6 +3,11 @@ package com.rinoto.migramongo.dao;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -54,6 +59,27 @@ public class MongoLockServiceTest {
 		lockService.acquireLock();
 		// when - then
 		assertThat(lockService.releaseLock(), is(true));
+	}
+
+	@Test
+	public void onlyOneThreadShouldAcquireLockWhenRunningConcurrently() throws Exception {
+		// given
+		final int numberOfWorkers = 10;
+		final ExecutorService executor = Executors.newFixedThreadPool(numberOfWorkers);
+		final AtomicInteger locksAcquired = new AtomicInteger(0);
+		final AtomicInteger locksRejected = new AtomicInteger(0);
+
+		// when
+		for (int i = 0; i < numberOfWorkers; i++) {
+			executor.submit(() -> lockService.acquireLock() ? locksAcquired.incrementAndGet()
+					: locksRejected.incrementAndGet());
+		}
+		executor.shutdown();
+		executor.awaitTermination(5, TimeUnit.SECONDS);
+
+		// then
+		assertThat(locksAcquired.get(), is(1));
+		assertThat(locksRejected.get(), is(numberOfWorkers - 1));
 	}
 
 	@Test

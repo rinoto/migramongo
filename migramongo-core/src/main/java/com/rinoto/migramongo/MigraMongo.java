@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
+import com.rinoto.migramongo.dao.LockService;
 import com.rinoto.migramongo.dao.MigrationHistoryService;
 import com.rinoto.migramongo.lookup.ScriptLookupService;
 
@@ -27,13 +28,15 @@ public class MigraMongo {
 
 	private final ScriptLookupService scriptLookupService;
 	private final MigrationHistoryService migrationEntryService;
+	private final LockService lockService;
 	private final ExecutorService executorService = Executors.newCachedThreadPool();
 	private MongoDatabase database;
 
-	public MigraMongo(MongoDatabase database, MigrationHistoryService migrationEntryService,
+	public MigraMongo(MongoDatabase database, MigrationHistoryService migrationEntryService, LockService lockService,
 			ScriptLookupService scriptLookupService) {
 		this.database = database;
 		this.migrationEntryService = migrationEntryService;
+		this.lockService = lockService;
 		this.scriptLookupService = scriptLookupService;
 	}
 
@@ -50,12 +53,12 @@ public class MigraMongo {
 			migrationScriptsToApply.stream().forEach(ms -> {
 				// dummy migration entries, emulating a migration that was not
 				// executed
-					final MigrationEntry migEntry = new MigrationEntry();
-					migEntry.setFromVersion(ms.getMigrationInfo().getFromVersion());
-					migEntry.setToVersion(ms.getMigrationInfo().getToVersion());
-					migEntry.setInfo("Dummy migration entry - migration has not been performed");
-					status.addEntry(migEntry);
-				});
+				final MigrationEntry migEntry = new MigrationEntry();
+				migEntry.setFromVersion(ms.getMigrationInfo().getFromVersion());
+				migEntry.setToVersion(ms.getMigrationInfo().getToVersion());
+				migEntry.setInfo("Dummy migration entry - migration has not been performed");
+				status.addEntry(migEntry);
+			});
 			return status;
 		} catch (MongoMigrationException e) {
 			return e.getStatus();
@@ -71,11 +74,17 @@ public class MigraMongo {
 	 * @return the status
 	 */
 	public MigraMongoStatus migrate() {
+		final boolean lockAcquired = lockService.acquireLock();
+		if (!lockAcquired) {
+			return MigraMongoStatus.lockNotAcquired();
+		}
 		try {
 			final List<MongoMigrationScript> migrationScriptsToApply = findMigrationScriptsToApply();
 			return migrate(migrationScriptsToApply);
 		} catch (MongoMigrationException e) {
 			return e.getStatus();
+		} finally {
+			lockService.releaseLock();
 		}
 	}
 
@@ -123,9 +132,9 @@ public class MigraMongo {
 						.withEntries(toList(migrations));
 			}
 			if (migEntry.getStatus() == MigrationStatus.IN_PROGRESS) {
-				return MigraMongoStatus.inProgress(
-						"At least one migration script is in progress. Check individual entries").withEntries(
-						toList(migrations));
+				return MigraMongoStatus
+						.inProgress("At least one migration script is in progress. Check individual entries")
+						.withEntries(toList(migrations));
 			}
 		}
 		// if we are here, it means that everything went ok
@@ -199,8 +208,8 @@ public class MigraMongo {
 	public MigraMongoStatus repair(String fromVersion, String toVersion) {
 		final MigrationEntry migrationEntry = migrationEntryService.findMigration(fromVersion, toVersion);
 		if (migrationEntry == null) {
-			return MigraMongoStatus.error("No migration entry found for fromVersion '" + fromVersion
-					+ "' and toVersion '" + toVersion + "'");
+			return MigraMongoStatus.error(
+					"No migration entry found for fromVersion '" + fromVersion + "' and toVersion '" + toVersion + "'");
 		}
 		if (migrationEntry.getStatus() == MigrationStatus.OK) {
 			return MigraMongoStatus.error("Migration entry with fromVersion '" + fromVersion + "' and toVersion '"
@@ -220,8 +229,8 @@ public class MigraMongo {
 	}
 
 	private MigrationEntry executeMigrationScript(MongoMigrationScript migrationScript) {
-		final MigrationEntry migrationEntry = migrationEntryService.insertMigrationStatusInProgress(migrationScript
-				.getMigrationInfo());
+		final MigrationEntry migrationEntry = migrationEntryService
+				.insertMigrationStatusInProgress(migrationScript.getMigrationInfo());
 		try {
 			migrationScript.migrate(database);
 			return migrationEntryService.setMigrationStatusToFinished(migrationEntry);
@@ -254,12 +263,12 @@ public class MigraMongo {
 			return new ArrayList<>();
 		}
 		if (candidates.size() > 1) {
-			throw new IllegalStateException("There is more than one script with fromVersion " + version + ": "
-					+ allMigrationScripts);
+			throw new IllegalStateException(
+					"There is more than one script with fromVersion " + version + ": " + allMigrationScripts);
 		}
 		final MongoMigrationScript nextMigrationScript = candidates.get(0);
-		final List<MongoMigrationScript> nextMigScriptsRec = findMigScriptsToApply(nextMigrationScript
-				.getMigrationInfo().getToVersion(), rest);
+		final List<MongoMigrationScript> nextMigScriptsRec = findMigScriptsToApply(
+				nextMigrationScript.getMigrationInfo().getToVersion(), rest);
 		candidates.addAll(nextMigScriptsRec);
 		return candidates;
 	}
