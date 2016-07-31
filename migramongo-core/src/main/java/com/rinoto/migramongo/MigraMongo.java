@@ -282,6 +282,14 @@ public class MigraMongo {
 		return toList(migrationEntryService.getAllMigrationsApplied());
 	}
 
+	/**
+	 * In case that the locks are corrupted, we can always re-init (destroy)
+	 * them
+	 */
+	public void destroyLocks() {
+		lockService.destroyLock();
+	}
+
 	private <T extends Object> List<T> toList(Iterable<T> iterable) {
 		return StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toList());
 	}

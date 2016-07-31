@@ -7,6 +7,7 @@ import org.bson.Document;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.rinoto.migramongo.LockEntry;
 
 public class MongoLockService implements LockService {
 
@@ -34,16 +35,16 @@ public class MongoLockService implements LockService {
 	@Override
 	public boolean acquireLock() {
 		final Document lockDocument = new LockEntryDocBuilder().lock().build();
-		final Document result = getLockCollection().findOneAndUpdate(
-				new Document(LockEntryDocBuilder.LOCK_ENTRY, true), new Document("$set", lockDocument));
+		final Document result = getLockCollection().findOneAndUpdate(new Document(LockEntryDocBuilder.LOCK_ENTRY, true),
+				new Document("$set", lockDocument));
 		return result != null && result.getBoolean(LockEntryDocBuilder.LOCKED, true) == false;
 	}
 
 	@Override
 	public boolean releaseLock() {
 		final Document releaseDocument = new LockEntryDocBuilder().release().build();
-		final Document result = getLockCollection().findOneAndUpdate(
-				new Document(LockEntryDocBuilder.LOCK_ENTRY, true), new Document("$set", releaseDocument));
+		final Document result = getLockCollection().findOneAndUpdate(new Document(LockEntryDocBuilder.LOCK_ENTRY, true),
+				new Document("$set", releaseDocument));
 		return result != null && result.getBoolean(LockEntryDocBuilder.LOCKED, false) == true;
 	}
 
@@ -51,6 +52,8 @@ public class MongoLockService implements LockService {
 
 		static String LOCK_ENTRY = "lockEntry";
 		static String LOCKED = "locked";
+		static String LAST_LOCK_DATE = "lastLockDate";
+		static String LAST_RELEASE_DATE = "lastReleaseDate";
 		private Document doc;
 
 		LockEntryDocBuilder() {
@@ -61,13 +64,13 @@ public class MongoLockService implements LockService {
 
 		LockEntryDocBuilder lock() {
 			doc.put(LOCKED, true);
-			doc.put("lastLockDate", new Date());
+			doc.put(LAST_LOCK_DATE, new Date());
 			return this;
 		}
 
 		LockEntryDocBuilder release() {
 			doc.put(LOCKED, false);
-			doc.put("lastReleaseDate", new Date());
+			doc.put(LAST_RELEASE_DATE, new Date());
 			return this;
 		}
 
@@ -75,5 +78,20 @@ public class MongoLockService implements LockService {
 			return doc;
 		}
 
+	}
+
+	@Override
+	public LockEntry getLockInformation() {
+		final Document lockDocument = getLockCollection().find(new Document(LockEntryDocBuilder.LOCK_ENTRY, true))
+				.first();
+		return new LockEntry(lockDocument.getBoolean(LockEntryDocBuilder.LOCKED),
+				lockDocument.getDate(LockEntryDocBuilder.LAST_LOCK_DATE),
+				lockDocument.getDate(LockEntryDocBuilder.LAST_RELEASE_DATE));
+	}
+
+	@Override
+	public void destroyLock() {
+		getLockCollection().deleteMany(new Document(LockEntryDocBuilder.LOCK_ENTRY, true));
+		initLockCollection();
 	}
 }

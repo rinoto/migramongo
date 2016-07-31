@@ -2,6 +2,9 @@ package com.rinoto.migramongo.dao;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -91,6 +94,60 @@ public class MongoLockServiceTest {
 	public void shouldCreateASecondInstanceOfLockService() throws Exception {
 		// no exceptions
 		new MongoLockService(database);
+	}
+
+	@Test
+	public void shouldGetLockInfoWhenUnlocked() throws Exception {
+		assertThat(lockService.getLockInformation().isLocked(), is(false));
+		assertThat(lockService.getLockInformation().getLastLockDate(), nullValue());
+		assertThat(lockService.getLockInformation().getLastReleaseDate(), nullValue());
+	}
+
+	@Test
+	public void shouldGetLockInfoWhenLocked() throws Exception {
+		// when
+		lockService.acquireLock();
+		// then
+		assertThat(lockService.getLockInformation().isLocked(), is(true));
+		assertThat(lockService.getLockInformation().getLastLockDate(), not(nullValue()));
+		assertThat(lockService.getLockInformation().getLastReleaseDate(), nullValue());
+	}
+
+	@Test
+	public void shouldGetLockInfoWhenLockedAndReleased() throws Exception {
+		// when
+		lockService.acquireLock();
+		Thread.sleep(1);
+		lockService.releaseLock();
+		// then
+		assertThat(lockService.getLockInformation().isLocked(), is(false));
+		assertThat(lockService.getLockInformation().getLastLockDate(), not(nullValue()));
+		assertThat(lockService.getLockInformation().getLastReleaseDate(), not(nullValue()));
+		assertThat(lockService.getLockInformation().getLastLockDate(),
+				lessThan(lockService.getLockInformation().getLastReleaseDate()));
+	}
+
+	@Test
+	public void shouldDestroyLock() throws Exception {
+		// when
+		lockService.destroyLock();
+
+		// then
+		assertThat(lockService.getLockInformation().isLocked(), is(false));
+		assertThat(lockService.getLockInformation().getLastLockDate(), nullValue());
+		assertThat(lockService.getLockInformation().getLastReleaseDate(), nullValue());
+	}
+
+	@Test
+	public void shouldDestroyLockWhileLocked() throws Exception {
+		// when
+		lockService.acquireLock();
+		lockService.destroyLock();
+
+		// then
+		assertThat(lockService.getLockInformation().isLocked(), is(false));
+		assertThat(lockService.getLockInformation().getLastLockDate(), nullValue());
+		assertThat(lockService.getLockInformation().getLastReleaseDate(), nullValue());
 	}
 
 }

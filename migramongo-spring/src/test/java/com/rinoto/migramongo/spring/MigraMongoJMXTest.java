@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -148,10 +149,8 @@ public class MigraMongoJMXTest {
 				}.getType());
 		assertThat(entriesRetrieved, hasSize(entries.size()));
 		for (int i = 0; i < entries.size(); i++) {
-			assertThat(
-					entries.get(i),
-					allOf(hasProperty("fromVersion", is(entriesRetrieved.get(i).getFromVersion())),
-							hasProperty("toVersion", is(entriesRetrieved.get(i).getToVersion()))));
+			assertThat(entries.get(i), allOf(hasProperty("fromVersion", is(entriesRetrieved.get(i).getFromVersion())),
+					hasProperty("toVersion", is(entriesRetrieved.get(i).getToVersion()))));
 		}
 	}
 
@@ -168,6 +167,14 @@ public class MigraMongoJMXTest {
 				new TypeToken<List<MigrationEntry>>() {
 				}.getType());
 		assertThat(entriesRetrieved, hasSize(0));
+	}
+
+	@Test
+	public void shouldDestroyLock() {
+		// when
+		migraMongoJMX.destroyLocks();
+		// then
+		verify(migraMongo).destroyLocks();
 	}
 
 	private MigrationEntry createMigrationEntry(String fromVersion, String toVersion) {

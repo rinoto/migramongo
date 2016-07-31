@@ -469,6 +469,14 @@ public class MigraMongoTest {
 		verify(lockService).releaseLock();
 	}
 
+	@Test
+	public void shouldDestroyLock() {
+		// when
+		migraMongo.destroyLocks();
+		// then
+		verify(lockService).destroyLock();
+	}
+
 	private void mockEntry(String fromVersion, String toVersion, MigrationStatus status) {
 		final MigrationEntry migEntry = createMigrationEntry(fromVersion, toVersion, status);
 		when(migEntryService.findMigration(fromVersion, toVersion)).thenReturn(migEntry);
