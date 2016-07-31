@@ -1,4 +1,4 @@
-package com.rinoto.migramongo.spring;
+package com.rinoto.migramongo.spring.jmx;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
