@@ -27,7 +27,7 @@ public class MigraMongo {
 	private static final Logger logger = LoggerFactory.getLogger(MigraMongo.class);
 
 	private final ScriptLookupService scriptLookupService;
-	private final MigrationHistoryService migrationEntryService;
+	private final MigrationHistoryService migrationHistoryService;
 	private final LockService lockService;
 	private final ExecutorService executorService = Executors.newCachedThreadPool();
 	private MongoDatabase database;
@@ -35,7 +35,7 @@ public class MigraMongo {
 	public MigraMongo(MongoDatabase database, MigrationHistoryService migrationEntryService, LockService lockService,
 			ScriptLookupService scriptLookupService) {
 		this.database = database;
-		this.migrationEntryService = migrationEntryService;
+		this.migrationHistoryService = migrationEntryService;
 		this.lockService = lockService;
 		this.scriptLookupService = scriptLookupService;
 	}
@@ -125,7 +125,7 @@ public class MigraMongo {
 	 * @return status of the applied migrations since the specified version
 	 */
 	public MigraMongoStatus status(String fromVersion) {
-		final Iterable<MigrationEntry> migrations = migrationEntryService.findMigrations(fromVersion);
+		final Iterable<MigrationEntry> migrations = migrationHistoryService.findMigrations(fromVersion);
 		for (MigrationEntry migEntry : migrations) {
 			if (migEntry.getStatus() == MigrationStatus.ERROR) {
 				return MigraMongoStatus.error("At least one migration script threw an error. Check individual entries")
@@ -159,7 +159,7 @@ public class MigraMongo {
 	}
 
 	private MigrationEntry getLastMigrationApplied() throws MongoMigrationException {
-		final MigrationEntry lastMigrationApplied = migrationEntryService.getLastMigrationApplied();
+		final MigrationEntry lastMigrationApplied = migrationHistoryService.getLastMigrationApplied();
 		if (isInInconsistentState(lastMigrationApplied)) {
 			throw new MongoMigrationException(new MigraMongoStatus(MigrationStatus.ERROR,
 					"Last Migration is in status " + lastMigrationApplied.getStatus() + ": " + lastMigrationApplied
@@ -206,7 +206,7 @@ public class MigraMongo {
 	 * @return status
 	 */
 	public MigraMongoStatus repair(String fromVersion, String toVersion) {
-		final MigrationEntry migrationEntry = migrationEntryService.findMigration(fromVersion, toVersion);
+		final MigrationEntry migrationEntry = migrationHistoryService.findMigration(fromVersion, toVersion);
 		if (migrationEntry == null) {
 			return MigraMongoStatus.error(
 					"No migration entry found for fromVersion '" + fromVersion + "' and toVersion '" + toVersion + "'");
@@ -216,7 +216,7 @@ public class MigraMongo {
 					+ toVersion + "' has already status '" + migrationEntry.getStatus() + "'. Nothing will be done");
 		}
 		final MigrationStatus previousStatus = migrationEntry.getStatus();
-		final MigrationEntry correctedMigrationEntry = migrationEntryService
+		final MigrationEntry correctedMigrationEntry = migrationHistoryService
 				.setMigrationStatusToFinished(migrationEntry);
 		final MigraMongoStatus status = MigraMongoStatus.ok("Status of migrationEntry " + migrationEntry
 				+ " changed from '" + previousStatus + "' to '" + MigrationStatus.OK + "'");
@@ -229,13 +229,13 @@ public class MigraMongo {
 	}
 
 	private MigrationEntry executeMigrationScript(MongoMigrationScript migrationScript) {
-		final MigrationEntry migrationEntry = migrationEntryService
+		final MigrationEntry migrationEntry = migrationHistoryService
 				.insertMigrationStatusInProgress(migrationScript.getMigrationInfo());
 		try {
 			migrationScript.migrate(database);
-			return migrationEntryService.setMigrationStatusToFinished(migrationEntry);
+			return migrationHistoryService.setMigrationStatusToFinished(migrationEntry);
 		} catch (Exception e) {
-			return migrationEntryService.setMigrationStatusToFailed(migrationEntry, e);
+			return migrationHistoryService.setMigrationStatusToFailed(migrationEntry, e);
 		}
 	}
 
@@ -279,7 +279,7 @@ public class MigraMongo {
 	 * @return
 	 */
 	public List<MigrationEntry> getMigrationEntries() {
-		return toList(migrationEntryService.getAllMigrationsApplied());
+		return toList(migrationHistoryService.getAllMigrationsApplied());
 	}
 
 	/**
@@ -288,6 +288,10 @@ public class MigraMongo {
 	 */
 	public void destroyLocks() {
 		lockService.destroyLock();
+	}
+
+	public MigrationHistoryService getMigrationHistoryService() {
+		return migrationHistoryService;
 	}
 
 	private <T extends Object> List<T> toList(Iterable<T> iterable) {

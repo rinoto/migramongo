@@ -6,7 +6,7 @@
 
 ### Introduction
 
-`Migramongo` is a tool to help you execute and mantain the history of the migration scripts in your Mongo Database.
+`Migramongo` is a java tool to help you execute and maintain the history of the migration scripts in your Mongo Database.
 The biggest different with respect to other existing tools is that Migramongo forces you to write the scripts in plain Java classes (or Spring beans), instead of Javascript, xml, or whatever. 
 
 You can use `migramongo` [with](#migraMongoWithSpring) or [without](#migraMongoWithoutSpring) Spring.
@@ -24,7 +24,7 @@ Add the `migramongo-spring` dependency to your project:
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring</artifactId>
-    <version>0.4</version>
+    <version>0.5</version>
 </dependency>
 ```
 #### Configuration
@@ -41,7 +41,7 @@ public class MigraMongoSpringSampleConfiguration {
     @Bean
     public MigraMongo migraMongo() throws Exception {
         //NOTE - it is up to you how you get the reference to the com.mongodb.client.MongoDatabase
-        return new SpringMigraMongo(appContext, mongoDatabase(), new MongoMigrationHistoryService(mongoDatabase()));
+        return new SpringMigraMongo(appContext, mongoDatabase());
     }
 
 }
@@ -130,7 +130,7 @@ public class MyStartupBean {
 }
 ```
 
-But this option may lead to problems in a distributed environment, where more than 1 application can startup at the same time.
+But this option may lead to problems in a distributed environment, where more than 1 application can startup at the same time. To avoid that more than one process executes the migration at the same time, we have introduced some basic locking support (using Mongo's [findAndModify](https://docs.mongodb.com/manual/reference/method/db.collection.findAndModify) )
 
 ##### Calling the migration explicitly via JMX
 
@@ -145,7 +145,7 @@ public class MigraMongoSpringSampleConfiguration {
     @Bean
     public MigraMongo migraMongo() throws Exception {
         //NOTE - it is up to you how you get the reference to the com.mongodb.client.MongoDatabase
-        return new SpringMigraMongo(appContext, mongoDatabase(), new MongoMigrationHistoryService(mongoDatabase()));
+        return new SpringMigraMongo(appContext, mongoDatabase());
     }
 
     @Bean
