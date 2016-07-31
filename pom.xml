@@ -4,7 +4,7 @@
 	<groupId>com.github.rinoto.mongo</groupId>
 	<artifactId>migramongo-parent</artifactId>
 	<packaging>pom</packaging>
-	<version>0.5</version>
+	<version>0.6-SNAPSHOT</version>
 	<name>migramongo</name>
 	<description>Tool for migrating mongodb scripts in Spring</description>
 	<url>https://github.com/rinoto/migramongo</url>

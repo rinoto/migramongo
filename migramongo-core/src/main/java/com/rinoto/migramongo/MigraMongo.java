@@ -290,10 +290,6 @@ public class MigraMongo {
 		lockService.destroyLock();
 	}
 
-	public MigrationHistoryService getMigrationHistoryService() {
-		return migrationHistoryService;
-	}
-
 	private <T extends Object> List<T> toList(Iterable<T> iterable) {
 		return StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toList());
 	}
