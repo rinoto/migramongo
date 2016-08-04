@@ -11,7 +11,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import com.rinoto.migramongo.MigraMongo;
 
 @Configuration
-//@Import(MigraMongoSpringTestConfig.class)
 @ComponentScan(basePackageClasses = MigraMongoSpringWebTestConfig.class)
 @EnableWebMvc
 public class MigraMongoSpringWebTestConfig extends WebMvcConfigurerAdapter {

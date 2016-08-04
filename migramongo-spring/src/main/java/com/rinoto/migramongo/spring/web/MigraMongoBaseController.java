@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -22,7 +23,7 @@ public class MigraMongoBaseController {
      * Performs the DB Migration in a synchronous mode (it will return when the migration is finished)
      */
     @RequestMapping(value = "/migration/sync", method = RequestMethod.PUT, produces = {
-        "application/vnd.rb.uim-v1+json"})
+        MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<MigraMongoStatus> migrateSync() {
         return new ResponseEntity<>(migraMongo.migrate(), HttpStatus.OK);
     }
@@ -31,7 +32,7 @@ public class MigraMongoBaseController {
      * Performs the DB Migration in an Asynchronous mode (it will return automatically)
      */
     @RequestMapping(value = "/migration/async", method = RequestMethod.PUT, produces = {
-        "application/vnd.rb.uim-v1+json"})
+        MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<MigraMongoStatus> migrateAsync() {
         return new ResponseEntity<>(migraMongo.migrateAsync(), HttpStatus.OK);
     }
@@ -43,7 +44,7 @@ public class MigraMongoBaseController {
      * @return
      */
     @RequestMapping(value = "/migration/status", method = RequestMethod.GET, produces = {
-        "application/vnd.rb.uim-v1+json"})
+        MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<MigraMongoStatus> status(
             @RequestParam(value = "fromVersion", required = false) String fromVersion) {
         return new ResponseEntity<>(migraMongo.status(fromVersion), HttpStatus.OK);
@@ -55,7 +56,7 @@ public class MigraMongoBaseController {
      * @return
      */
     @RequestMapping(value = "/migration/history", method = RequestMethod.GET, produces = {
-        "application/vnd.rb.uim-v1+json"})
+        MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<List<MigrationEntry>> migrationHistory() {
         return new ResponseEntity<>(migraMongo.getMigrationEntries(), HttpStatus.OK);
     }
