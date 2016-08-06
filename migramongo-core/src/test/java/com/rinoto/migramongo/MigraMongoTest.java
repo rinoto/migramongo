@@ -557,6 +557,26 @@ public class MigraMongoTest {
         }
     }
 
+    @Test
+    public void aMongoMigrationScriptShouldBeInIncludedInInitialMigrationByDefault() {
+        //given
+        final MongoMigrationScript emptyMongoMigrationScript = new MongoMigrationScript() {
+
+            @Override
+            public MigrationInfo getMigrationInfo() {
+                //not needed
+                return null;
+            }
+
+            @Override
+            public void migrate(MongoDatabase database) throws Exception {
+                //not needed
+            }
+        };
+        //when - then
+        assertThat(emptyMongoMigrationScript.includedInInitialMigrationScript(), is(true));
+    }
+
     private void mockEntry(String fromVersion, String toVersion, MigrationStatus status) {
         final MigrationEntry migEntry = createMigrationEntry(fromVersion, toVersion, status);
         when(migEntryService.findMigration(fromVersion, toVersion)).thenReturn(migEntry);
