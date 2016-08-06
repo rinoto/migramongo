@@ -39,6 +39,7 @@
 	<modules>
 		<module>migramongo-core</module>
 		<module>migramongo-spring</module>
+		<module>migramongo-spring-web</module>
 	</modules>
 
 	<dependencyManagement>

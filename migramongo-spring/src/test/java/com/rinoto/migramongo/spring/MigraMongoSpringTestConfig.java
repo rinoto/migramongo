@@ -25,42 +25,42 @@ import com.rinoto.migramongo.spring.jmx.MigraMongoJMX;
 @EnableMBeanExport
 public class MigraMongoSpringTestConfig {
 
-	public static final String MIGRAMONGO_TEST_DB = "migraMongoTestDB";
+    public static final String MIGRAMONGO_TEST_DB = "migraMongoTestDB";
 
-	@Autowired
-	ApplicationContext appContext;
-	@Autowired
-	EmbeddedMongo embeddedMongo;
+    @Autowired
+    ApplicationContext appContext;
+    @Autowired
+    EmbeddedMongo embeddedMongo;
 
-	private static MongoClient mongoClient;
+    private static MongoClient mongoClient;
 
-	@Bean
-	public MongoDatabase mongoDatabase() throws Exception {
-		embeddedMongo.start();
-		mongoClient = new MongoClient("localhost", 12345);
-		return mongoClient.getDatabase(MIGRAMONGO_TEST_DB);
-	}
+    @Bean
+    public MongoDatabase mongoDatabase() throws Exception {
+        embeddedMongo.start();
+        mongoClient = new MongoClient("localhost", 12345);
+        return mongoClient.getDatabase(MIGRAMONGO_TEST_DB);
+    }
 
-	@Bean
-	public LockService lockService() throws Exception {
-		return new MongoLockService(mongoDatabase());
-	}
+    @Bean
+    public LockService lockService() throws Exception {
+        return new MongoLockService(mongoDatabase());
+    }
 
-	@Bean
-	@Primary
-	public MigraMongo migraMongo() throws Exception {
-		return new SpringMigraMongo(appContext, mongoDatabase());
-	}
+    @Bean
+    @Primary
+    public MigraMongo migraMongo() throws Exception {
+        return new SpringMigraMongo(appContext, mongoDatabase());
+    }
 
-	@Bean
-	public MigraMongoJMX migraMongoJMX() throws Exception {
-		return new MigraMongoJMX(migraMongo());
-	}
+    @Bean
+    public MigraMongoJMX migraMongoJMX() throws Exception {
+        return new MigraMongoJMX(migraMongo());
+    }
 
-	@PreDestroy
-	public void destroyMongo() {
-		mongoClient.close();
-		embeddedMongo.stop();
-	}
+    @PreDestroy
+    public void destroyMongo() {
+        mongoClient.close();
+        embeddedMongo.stop();
+    }
 
 }

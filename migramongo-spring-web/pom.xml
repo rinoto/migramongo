@@ -6,24 +6,20 @@
 		<artifactId>migramongo-parent</artifactId>
 		<version>0.6-SNAPSHOT</version>
 	</parent>
-	<artifactId>migramongo-spring</artifactId>
+	<artifactId>migramongo-spring-web</artifactId>
 	<packaging>jar</packaging>
-	<name>migramongo spring</name>
+	<name>migramongo spring web</name>
 	<description>Tool for migrating mongodb scripts</description>
 
 	<dependencies>
 		<dependency>
 			<groupId>com.github.rinoto.mongo</groupId>
-			<artifactId>migramongo-core</artifactId>
+			<artifactId>migramongo-spring</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.google.code.gson</groupId>
-			<artifactId>gson</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>spring-context</artifactId>
+			<artifactId>spring-web</artifactId>
 		</dependency>
 
 		<!-- Test -->
@@ -55,8 +51,20 @@
 			<artifactId>hamcrest-library</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>de.flapdoodle.embed</groupId>
-			<artifactId>de.flapdoodle.embed.mongo</artifactId>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webmvc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path</artifactId>
+			<version>2.2.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.1.0</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
