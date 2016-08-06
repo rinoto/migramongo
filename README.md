@@ -24,7 +24,7 @@ Add the `migramongo-spring` dependency to your project:
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring</artifactId>
-    <version>0.5</version>
+    <version>0.6</version>
 </dependency>
 ```
 #### Configuration
@@ -182,38 +182,41 @@ The following is an example of registering a Controller and calling the migramon
 ```java
 @RestController
 @RequestMapping("/mongo")
-public class MigraMongoController {
-
-    @Autowired
-    private MigraMongo migraMongo;
-
-    @RequestMapping(value = "/migration", method = RequestMethod.PUT, produces = {"application/json"})
-    public ResponseEntity<MigraMongoStatus> migrate() {
-        return new ResponseEntity<>(migraMongo.migrate(), HttpStatus.OK);
-    }
+public class MigraMongoController extends MigraMongoBaseController {
+    //all endpoints are inherited from <code>MigraMongoBaseController</code>
 
 }
 
+The Controller provides methods to execute the migration (sync or async), get the status, and the history. Have a look at `MigraMongoBaseController` for the complete list of methods.
+
+```
+In order to use the `MigraMongoBaseController`, you will need the `migramongo-spring-web` dependency:
+
+```xml
+<dependency>
+    <groupId>com.github.rinoto.mongo</groupId>
+    <artifactId>migramongo-spring-web</artifactId>
+    <version>0.6</version>
+</dependency>
 ```
 
+
 ### <a name="migraMongoWithoutSpring"></a>Using migramongo without Spring
-It's basically the same as with Spring, with the difference that:
-* the dependency to use is `migramongo-core` 
+It's basically the same as with Spring, you just need to change
+ the dependency to `migramongo-core` 
 
 ```xml
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-core</artifactId>
-    <version>check the latest</version>
+    <version>0.6</version>
 </dependency>
 ```
 
-* your migration script classes do not need to be a Spring Bean, they just must implement the interfaces
-* you need to provide a lookup mechanism when creating the migramongo instance. e.g.
+And:
 
-```java
-
-```
+* your migration script classes do not need to be a Spring Bean, they just must implement the `InitialMongoMigrationScript` and `MongoMigrationScript` interfaces
+* you need to provide a lookup mechanism when creating the migramongo instance, by providing an implementation of `ScriptLookupService`
 
 
 ### How it works
