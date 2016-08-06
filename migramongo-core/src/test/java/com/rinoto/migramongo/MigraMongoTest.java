@@ -17,8 +17,10 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -52,6 +54,11 @@ public class MigraMongoTest {
     public void setup() {
         // mocking
         when(migEntryService.insertMigrationStatusInProgress(any(MigrationInfo.class))).thenAnswer(i -> {
+            final MigrationInfo migInfo = (MigrationInfo) i.getArguments()[0];
+            final MigrationEntry e = createMigrationEntry(migInfo.getFromVersion(), migInfo.getToVersion(), null);
+            return e;
+        });
+        when(migEntryService.insertMigrationStatusSkipped(any(MigrationInfo.class))).thenAnswer(i -> {
             final MigrationInfo migInfo = (MigrationInfo) i.getArguments()[0];
             final MigrationEntry e = createMigrationEntry(migInfo.getFromVersion(), migInfo.getToVersion(), null);
             return e;
@@ -500,6 +507,56 @@ public class MigraMongoTest {
         verify(lockService).destroyLock();
     }
 
+    @Test
+    public void shouldNotExecuteMigrationScriptMarkedWithIncludedInInitialTrue() throws Exception {
+        // given
+        final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
+        when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
+        final List<MongoMigrationScript> migrationScripts = Arrays
+            .asList(mockMongoScript("1", "2", true), mockMongoScript("2", "3", false), mockMongoScript("3", "4", true));
+        when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
+
+        // when
+        final MigraMongoStatus status = migraMongo.migrate();
+
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        assertThat(status.migrationsApplied, hasSize(migrationScripts.size() + 1));
+        verify(mockInitialScript).migrate(mongoDatabase);
+        final Map<Boolean, List<MongoMigrationScript>> scriptsGrouppedByIncludedInInitial = migrationScripts
+            .stream()
+            .collect(Collectors.groupingBy(ms -> ms.includedInInitialMigrationScript()));
+        //included in initial = true
+        for (MongoMigrationScript scriptIncludedInInitial : scriptsGrouppedByIncludedInInitial.get(true)) {
+            verify(scriptIncludedInInitial, times(0)).migrate(mongoDatabase);
+        }
+        //included in initial = false
+        for (MongoMigrationScript scriptNotIncludedInInitial : scriptsGrouppedByIncludedInInitial.get(false)) {
+            verify(scriptNotIncludedInInitial).migrate(mongoDatabase);
+        }
+    }
+
+    @Test
+    public void shouldExecuteMigrationScriptMarkedWithIncludedInInitialTrueIfItsNotAnInitialMigration()
+            throws Exception {
+        // given
+        mockLastMigrationApplied("0", "1");
+        final List<MongoMigrationScript> migrationScripts = Arrays
+            .asList(mockMongoScript("1", "2", true), mockMongoScript("2", "3", false), mockMongoScript("3", "4", true));
+        when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
+
+        // when
+        final MigraMongoStatus status = migraMongo.migrate();
+
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        assertThat(status.migrationsApplied, hasSize(migrationScripts.size()));
+        //all are migrated, independent on the isIncludedInInitial
+        for (MongoMigrationScript migrationScript : migrationScripts) {
+            verify(migrationScript).migrate(mongoDatabase);
+        }
+    }
+
     private void mockEntry(String fromVersion, String toVersion, MigrationStatus status) {
         final MigrationEntry migEntry = createMigrationEntry(fromVersion, toVersion, status);
         when(migEntryService.findMigration(fromVersion, toVersion)).thenReturn(migEntry);
@@ -514,8 +571,13 @@ public class MigraMongoTest {
     }
 
     private MongoMigrationScript mockMongoScript(String from, String to) {
+        return mockMongoScript(from, to, false);
+    }
+
+    private MongoMigrationScript mockMongoScript(String from, String to, boolean includedInInitial) {
         final MongoMigrationScript script = mock(MongoMigrationScript.class);
         when(script.getMigrationInfo()).thenReturn(new MigrationInfo(from, to));
+        when(script.includedInInitialMigrationScript()).thenReturn(includedInInitial);
         return script;
     }
 
