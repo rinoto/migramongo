@@ -5,14 +5,14 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -200,16 +200,12 @@ public class MigraMongoTest {
         // given
         // -- last entry in db
         mockLastEntry("1", "1");
-        // -- initial script provided
-        final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
-        when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
-        // when
         // when
         final MigraMongoStatus status = migraMongo.migrate();
-        // then
+        // then - no need to lookup for the initial script
+        verify(lookupService, times(0)).findInitialScript();
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(0));
-        verifyZeroInteractions(mockInitialScript);
     }
 
     private MigrationEntry mockLastEntry(String from, String to) {
@@ -270,10 +266,6 @@ public class MigraMongoTest {
         // -- last entry in db
         final MigrationEntry mockLastEntry = mockLastEntry("1", "1");
         mockLastEntry.setStatus(MigrationStatus.ERROR);
-        // - mig scripts provided
-        final List<MongoMigrationScript> migrationScripts = Arrays
-            .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("8", "9"));
-        when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
         // then
@@ -285,9 +277,7 @@ public class MigraMongoTest {
                 containsString("Last Migration is in status ERROR"),
                 containsString("fromVersion=1"),
                 containsString("toVersion=1")));
-        for (MongoMigrationScript ms : migrationScripts) {
-            verify(ms, never()).migrate(mongoDatabase);
-        }
+        verify(lookupService, times(0)).findMongoScripts();
     }
 
     @Test
@@ -577,6 +567,12 @@ public class MigraMongoTest {
         assertThat(emptyMongoMigrationScript.includedInInitialMigrationScript(), is(true));
     }
 
+    @Test
+    public void shouldMigrateInitialScriptEvenIfIncludedInInitialIsFalse() {
+        //        a;
+        migraMongo.migrate();
+    }
+
     private void mockEntry(String fromVersion, String toVersion, MigrationStatus status) {
         final MigrationEntry migEntry = createMigrationEntry(fromVersion, toVersion, status);
         when(migEntryService.findMigration(fromVersion, toVersion)).thenReturn(migEntry);
@@ -608,7 +604,9 @@ public class MigraMongoTest {
     }
 
     private InitialMongoMigrationScript mockInitialScript(String version) {
-        final InitialMongoMigrationScript script = mock(InitialMongoMigrationScript.class);
+        final InitialMongoMigrationScript script = mock(
+            InitialMongoMigrationScript.class,
+            withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
         when(script.getMigrationInfo()).thenReturn(new InitialMigrationInfo(version));
         return script;
     }

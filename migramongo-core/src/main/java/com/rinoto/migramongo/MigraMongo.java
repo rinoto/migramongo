@@ -252,7 +252,9 @@ public class MigraMongo {
     }
 
     private MigrationEntry executeMigrationScript(MongoMigrationScript migrationScript, boolean isInitialMigration) {
-        if (isInitialMigration && migrationScript.includedInInitialMigrationScript()) {
+        if ( !InitialMongoMigrationScript.class.isInstance(migrationScript) &&
+            isInitialMigration &&
+            migrationScript.includedInInitialMigrationScript()) {
             //special case when we are in the initial migration, and this script is already included in it
             return migrationHistoryService.insertMigrationStatusSkipped(migrationScript.getMigrationInfo());
         }

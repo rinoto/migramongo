@@ -11,87 +11,97 @@ import com.rinoto.migramongo.LockEntry;
 
 public class MongoLockService implements LockService {
 
-	public static final String MIGRAMONGO_LOCK_COLLECTION = "_migramongo_lock";
-	private final MongoDatabase database;
+    public static final String MIGRAMONGO_LOCK_COLLECTION = "_migramongo_lock";
+    private final MongoDatabase database;
 
-	public MongoLockService(MongoDatabase database) {
-		this.database = database;
-		initLockCollection();
-	}
+    public MongoLockService(MongoDatabase database) {
+        this.database = database;
+        initLockCollection();
+    }
 
-	private void initLockCollection() {
-		// assuring that the index exists
-		getLockCollection().createIndex(new BasicDBObject(LockEntryDocBuilder.LOCK_ENTRY, 1));
-		// creating the first entry - as "lockEntry" is unique, it will fail if
-		// one already exists, but it's ok
-		final Document basicLockEntry = new LockEntryDocBuilder().build();
-		getLockCollection().insertOne(basicLockEntry);
-	}
+    private void initLockCollection() {
+        // assuring that the index exists
+        getLockCollection().createIndex(new BasicDBObject(LockEntryDocBuilder.LOCK_ENTRY, 1));
+        // creating the first entry - as "lockEntry" is unique, it will fail if
+        // one already exists, but it's ok
+        final Document basicLockEntry = new LockEntryDocBuilder().build();
+        //        System.out.println(Thread.currentThread().getName() + " - BASIC LOCK ENTRY: " + basicLockEntry);
+        getLockCollection().insertOne(basicLockEntry);
+    }
 
-	private MongoCollection<Document> getLockCollection() {
-		return this.database.getCollection(MIGRAMONGO_LOCK_COLLECTION);
-	}
+    private MongoCollection<Document> getLockCollection() {
+        return this.database.getCollection(MIGRAMONGO_LOCK_COLLECTION);
+    }
 
-	@Override
-	public boolean acquireLock() {
-		final Document lockDocument = new LockEntryDocBuilder().lock().build();
-		final Document result = getLockCollection().findOneAndUpdate(new Document(LockEntryDocBuilder.LOCK_ENTRY, true),
-				new Document("$set", lockDocument));
-		return result != null && result.getBoolean(LockEntryDocBuilder.LOCKED, true) == false;
-	}
+    @Override
+    public boolean acquireLock() {
+        //TODO RINOTO - finalize locking!
+        if (getLockCollection().count() == 0) {
+            //collection doesn't exist
+            //            initLockCollection();
+        }
 
-	@Override
-	public boolean releaseLock() {
-		final Document releaseDocument = new LockEntryDocBuilder().release().build();
-		final Document result = getLockCollection().findOneAndUpdate(new Document(LockEntryDocBuilder.LOCK_ENTRY, true),
-				new Document("$set", releaseDocument));
-		return result != null && result.getBoolean(LockEntryDocBuilder.LOCKED, false) == true;
-	}
+        final Document lockDocument = new LockEntryDocBuilder().lock().build();
+        final Document result = getLockCollection()
+            .findOneAndUpdate(new Document(LockEntryDocBuilder.LOCK_ENTRY, true), new Document("$set", lockDocument));
+        return result != null && result.getBoolean(LockEntryDocBuilder.LOCKED, true) == false;
+    }
 
-	static class LockEntryDocBuilder {
+    @Override
+    public boolean releaseLock() {
+        final Document releaseDocument = new LockEntryDocBuilder().release().build();
+        final Document result = getLockCollection().findOneAndUpdate(
+            new Document(LockEntryDocBuilder.LOCK_ENTRY, true),
+            new Document("$set", releaseDocument));
+        return result != null && result.getBoolean(LockEntryDocBuilder.LOCKED, false) == true;
+    }
 
-		static String LOCK_ENTRY = "lockEntry";
-		static String LOCKED = "locked";
-		static String LAST_LOCK_DATE = "lastLockDate";
-		static String LAST_RELEASE_DATE = "lastReleaseDate";
-		private Document doc;
+    static class LockEntryDocBuilder {
 
-		LockEntryDocBuilder() {
-			doc = new Document();
-			doc.put(LOCK_ENTRY, true);
-			doc.put(LOCKED, false);
-		}
+        static String LOCK_ENTRY = "lockEntry";
+        static String LOCKED = "locked";
+        static String LAST_LOCK_DATE = "lastLockDate";
+        static String LAST_RELEASE_DATE = "lastReleaseDate";
+        private Document doc;
 
-		LockEntryDocBuilder lock() {
-			doc.put(LOCKED, true);
-			doc.put(LAST_LOCK_DATE, new Date());
-			return this;
-		}
+        LockEntryDocBuilder() {
+            doc = new Document();
+            doc.put(LOCK_ENTRY, true);
+            doc.put(LOCKED, false);
+        }
 
-		LockEntryDocBuilder release() {
-			doc.put(LOCKED, false);
-			doc.put(LAST_RELEASE_DATE, new Date());
-			return this;
-		}
+        LockEntryDocBuilder lock() {
+            doc.put(LOCKED, true);
+            doc.put(LAST_LOCK_DATE, new Date());
+            return this;
+        }
 
-		Document build() {
-			return doc;
-		}
+        LockEntryDocBuilder release() {
+            doc.put(LOCKED, false);
+            doc.put(LAST_RELEASE_DATE, new Date());
+            return this;
+        }
 
-	}
+        Document build() {
+            return doc;
+        }
 
-	@Override
-	public LockEntry getLockInformation() {
-		final Document lockDocument = getLockCollection().find(new Document(LockEntryDocBuilder.LOCK_ENTRY, true))
-				.first();
-		return new LockEntry(lockDocument.getBoolean(LockEntryDocBuilder.LOCKED),
-				lockDocument.getDate(LockEntryDocBuilder.LAST_LOCK_DATE),
-				lockDocument.getDate(LockEntryDocBuilder.LAST_RELEASE_DATE));
-	}
+    }
 
-	@Override
-	public void destroyLock() {
-		getLockCollection().deleteMany(new Document(LockEntryDocBuilder.LOCK_ENTRY, true));
-		initLockCollection();
-	}
+    @Override
+    public LockEntry getLockInformation() {
+        final Document lockDocument = getLockCollection()
+            .find(new Document(LockEntryDocBuilder.LOCK_ENTRY, true))
+            .first();
+        return new LockEntry(
+            lockDocument.getBoolean(LockEntryDocBuilder.LOCKED),
+            lockDocument.getDate(LockEntryDocBuilder.LAST_LOCK_DATE),
+            lockDocument.getDate(LockEntryDocBuilder.LAST_RELEASE_DATE));
+    }
+
+    @Override
+    public void destroyLock() {
+        getLockCollection().deleteMany(new Document(LockEntryDocBuilder.LOCK_ENTRY, true));
+        initLockCollection();
+    }
 }
