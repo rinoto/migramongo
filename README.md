@@ -24,7 +24,7 @@ Add the `migramongo-spring` dependency to your project:
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring</artifactId>
-    <version>0.6</version>
+    <version>0.7</version>
 </dependency>
 ```
 #### Configuration
@@ -196,7 +196,7 @@ In order to use the `MigraMongoBaseController`, you will need the `migramongo-sp
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring-web</artifactId>
-    <version>0.6</version>
+    <version>0.7</version>
 </dependency>
 ```
 
@@ -209,7 +209,7 @@ It's basically the same as with Spring, you just need to change
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-core</artifactId>
-    <version>0.6</version>
+    <version>0.7</version>
 </dependency>
 ```
 
