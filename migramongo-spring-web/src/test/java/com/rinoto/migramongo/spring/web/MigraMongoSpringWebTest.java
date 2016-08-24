@@ -2,6 +2,7 @@ package com.rinoto.migramongo.spring.web;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -42,7 +43,6 @@ public class MigraMongoSpringWebTest {
 
     @Before
     public void setup() {
-        //        this.mockMvc = MockMvcBuilders.standaloneSetup(new MigraMongoTestController()).build();
         this.mockMvc = MockMvcBuilders.webAppContextSetup(this.wac).build();
     }
 
@@ -102,6 +102,13 @@ public class MigraMongoSpringWebTest {
             .andExpect(jsonPath("$.[1].fromVersion").value("4"))
             .andExpect(jsonPath("$.[1].toVersion").value("5"));
         verify(migraMongo).getMigrationEntries();
+    }
+
+    @Test
+    public void shouldDestroyLocks() throws Exception {
+        //when - then
+        this.mockMvc.perform(delete("/mongo/migration/lock")).andExpect(status().isOk());
+        verify(migraMongo).destroyLocks();
     }
 
 }

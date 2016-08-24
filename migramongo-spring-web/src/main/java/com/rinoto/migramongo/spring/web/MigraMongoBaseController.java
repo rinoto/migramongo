@@ -61,4 +61,14 @@ public class MigraMongoBaseController {
         return new ResponseEntity<>(migraMongo.getMigrationEntries(), HttpStatus.OK);
     }
 
+    /**
+     * It removes the locks. To be used in the case when the locks in the DB are in an inconsistent state.
+     * 
+     * @return
+     */
+    @RequestMapping(value = "/migration/lock", method = RequestMethod.DELETE)
+    public void deleteLocks() {
+        migraMongo.destroyLocks();
+    }
+
 }
