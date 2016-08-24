@@ -20,12 +20,15 @@ public class MongoLockService implements LockService {
     }
 
     private void initLockCollection() {
+        //if the table already exists, we do not need to create it anymore
+        if (getLockCollection().count() > 0) {
+            return;
+        }
         // assuring that the index exists
         getLockCollection().createIndex(new BasicDBObject(LockEntryDocBuilder.LOCK_ENTRY, 1));
         // creating the first entry - as "lockEntry" is unique, it will fail if
         // one already exists, but it's ok
         final Document basicLockEntry = new LockEntryDocBuilder().build();
-        //        System.out.println(Thread.currentThread().getName() + " - BASIC LOCK ENTRY: " + basicLockEntry);
         getLockCollection().insertOne(basicLockEntry);
     }
 
@@ -35,12 +38,10 @@ public class MongoLockService implements LockService {
 
     @Override
     public boolean acquireLock() {
-        //TODO RINOTO - finalize locking!
         if (getLockCollection().count() == 0) {
-            //collection doesn't exist
-            //            initLockCollection();
+            throw new IllegalStateException(
+                "Cannot acquire lock because lock table has not been initialized. Initialize MongoLockService properly, or call destroyLock");
         }
-
         final Document lockDocument = new LockEntryDocBuilder().lock().build();
         final Document result = getLockCollection()
             .findOneAndUpdate(new Document(LockEntryDocBuilder.LOCK_ENTRY, true), new Document("$set", lockDocument));

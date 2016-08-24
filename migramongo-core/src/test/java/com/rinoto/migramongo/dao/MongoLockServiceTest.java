@@ -177,4 +177,13 @@ public class MongoLockServiceTest {
         assertThat(lockService.getLockInformation().getLastReleaseDate(), nullValue());
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void shouldThrowIllegalStateExceptionIfLockServiceIsNotInitialized() {
+        //given lock collection doesn't exist
+        database.getCollection(MongoLockService.MIGRAMONGO_LOCK_COLLECTION).drop();
+
+        //when - expect exception
+        lockService.acquireLock();
+    }
+
 }
