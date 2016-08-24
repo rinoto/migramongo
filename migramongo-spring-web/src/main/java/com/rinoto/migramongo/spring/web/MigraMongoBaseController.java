@@ -21,6 +21,8 @@ public class MigraMongoBaseController {
 
     /**
      * Performs the DB Migration in a synchronous mode (it will return when the migration is finished)
+     * 
+     * @return status of the performed migration
      */
     @RequestMapping(value = "/migration/sync", method = RequestMethod.PUT, produces = {
         MediaType.APPLICATION_JSON_VALUE})
@@ -29,7 +31,14 @@ public class MigraMongoBaseController {
     }
 
     /**
-     * Performs the DB Migration in an Asynchronous mode (it will return automatically)
+     * Performs the DB Migration in an Asynchronous mode (it will return automatically).
+     * <p>
+     * <ul>
+     * <li>if there is nothing to migrate, a status with OK will be returned
+     * <li>if there are items to migrate, a status with IN_PROGRESS and the items that will be migrated will be returned. Afterwards you will need to call the /status method to check the status.
+     * </ul>
+     * 
+     * @return status
      */
     @RequestMapping(value = "/migration/async", method = RequestMethod.PUT, produces = {
         MediaType.APPLICATION_JSON_VALUE})
@@ -41,7 +50,7 @@ public class MigraMongoBaseController {
      * It returns the status of the migration
      * 
      * @param fromVersion we can specify from which version we want to retrieve the status
-     * @return
+     * @return status
      */
     @RequestMapping(value = "/migration/status", method = RequestMethod.GET, produces = {
         MediaType.APPLICATION_JSON_VALUE})
@@ -53,7 +62,7 @@ public class MigraMongoBaseController {
     /**
      * It returns all the entries that have been migrated (migration history)
      * 
-     * @return
+     * @return history
      */
     @RequestMapping(value = "/migration/history", method = RequestMethod.GET, produces = {
         MediaType.APPLICATION_JSON_VALUE})
@@ -63,8 +72,6 @@ public class MigraMongoBaseController {
 
     /**
      * It removes the locks. To be used in the case when the locks in the DB are in an inconsistent state.
-     * 
-     * @return
      */
     @RequestMapping(value = "/migration/lock", method = RequestMethod.DELETE)
     public void deleteLocks() {
