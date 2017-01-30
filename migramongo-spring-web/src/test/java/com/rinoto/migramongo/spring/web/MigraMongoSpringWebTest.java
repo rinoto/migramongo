@@ -111,4 +111,14 @@ public class MigraMongoSpringWebTest {
         verify(migraMongo).destroyLocks();
     }
 
+    @Test
+    public void shouldRepair() throws Exception {
+        //when
+        this.mockMvc
+            .perform(put("/mongo/admin/migration/repair?fromVersion=1&toVersion=2").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk());
+        //then
+        verify(migraMongo).repair("1", "2");
+    }
+
 }

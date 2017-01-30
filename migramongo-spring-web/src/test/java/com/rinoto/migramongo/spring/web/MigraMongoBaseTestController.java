@@ -5,6 +5,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/mongo")
-public class MigraMongoTestController extends MigraMongoBaseController {
+public class MigraMongoBaseTestController extends MigraMongoBaseController {
 
 }
