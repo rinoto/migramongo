@@ -208,7 +208,7 @@ public class MigraMongoTest {
         assertThat(status.migrationsApplied, hasSize(0));
     }
 
-    private MigrationEntry mockLastEntry(String from, String to) {
+    private MigrationRun mockLastEntry(String from, String to) {
         final MigrationEntry lastEntry = createMigrationEntry(from, to, MigrationStatus.OK);
         when(migEntryService.getLastMigrationApplied()).thenReturn(lastEntry);
         return lastEntry;
@@ -264,7 +264,7 @@ public class MigraMongoTest {
     public void shouldNotStartMigrationIfLastScriptIsInError() throws Exception {
         // given
         // -- last entry in db
-        final MigrationEntry mockLastEntry = mockLastEntry("1", "1");
+        final MigrationRun mockLastEntry = mockLastEntry("1", "1");
         mockLastEntry.setStatus(MigrationStatus.ERROR);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -611,7 +611,7 @@ public class MigraMongoTest {
         return script;
     }
 
-    private MigrationEntry mockLastMigrationApplied(String from, String to) {
+    private MigrationRun mockLastMigrationApplied(String from, String to) {
         final MigrationEntry migEntry = createMigrationEntry(from, to, MigrationStatus.OK);
         when(migEntryService.getLastMigrationApplied()).thenReturn(migEntry);
         return migEntry;

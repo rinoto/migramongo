@@ -10,6 +10,7 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
+import com.mongodb.BasicDBList;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -17,6 +18,7 @@ import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
 import com.rinoto.migramongo.MigrationEntry;
 import com.rinoto.migramongo.MigrationEntry.MigrationType;
 import com.rinoto.migramongo.MigrationInfo;
+import com.rinoto.migramongo.MigrationRun;
 
 public class MongoMigrationHistoryService implements MigrationHistoryService {
 
@@ -61,9 +63,13 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
             getMigramongoCollection().insertOne(document);
             migEntry.setId(document.getObjectId("_id"));
         } else {
-            getMigramongoCollection().replaceOne(eq("_id", migEntry.getId()), document);
+            replaceMigrationEntry(migEntry, document);
         }
         return migEntry;
+    }
+
+    private void replaceMigrationEntry(MigrationEntry migEntry, final Document document) {
+        getMigramongoCollection().replaceOne(eq("_id", migEntry.getId()), document);
     }
 
     MongoCollection<Document> getMigramongoCollection() {
@@ -108,14 +114,10 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         final MigrationEntry migEntry = new MigrationEntry();
         migEntry.setId(doc.getObjectId("_id"));
         migEntry.setModule(doc.getString("module"));
-        migEntry.setInfo(doc.getString("info"));
         migEntry.setFromVersion(doc.getString("fromVersion"));
         migEntry.setToVersion(doc.getString("toVersion"));
         migEntry.setMigrationType(MigrationType.valueOf(doc.getString("type")));
-        migEntry.setStatus(MigrationStatus.valueOf(doc.getString("status")));
-        migEntry.setStatusMessage(doc.getString("statusMessage"));
-        migEntry.setCreatedAt(doc.getDate("createdAt"));
-        migEntry.setUpdatedAt(doc.getDate("updatedAt"));
+        fillMigrationRunDataIntoObject(migEntry, doc);
         final Boolean repaired = doc.getBoolean("repaired");
         if (repaired != null) {
             migEntry.setRepaired(repaired);
@@ -124,34 +126,76 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         if (skipped != null) {
             migEntry.setSkipped(skipped);
         }
+        final BasicDBList reruns = doc.get("reruns", BasicDBList.class);
+        if (reruns != null) {
+            final List<MigrationRun> rerunsList = new ArrayList<>();
+            for (Object migRunDoc : reruns) {
+                final MigrationRun migRun = mapMigrationRun((Document) migRunDoc);
+                rerunsList.add(migRun);
+            }
+            migEntry.setReruns(rerunsList);
+        }
         return migEntry;
     }
 
+    private MigrationRun mapMigrationRun(Document migRunDoc) {
+        final MigrationRun migRun = new MigrationRun();
+        fillMigrationRunDataIntoObject(migRun, migRunDoc);
+        return migRun;
+    }
+
+    private void fillMigrationRunDataIntoObject(MigrationRun migRun, Document doc) {
+        migRun.setInfo(doc.getString("info"));
+        migRun.setStatus(MigrationStatus.valueOf(doc.getString("status")));
+        migRun.setStatusMessage(doc.getString("statusMessage"));
+        migRun.setCreatedAt(doc.getDate("createdAt"));
+        migRun.setUpdatedAt(doc.getDate("updatedAt"));
+    }
+
     private Document mapMigEntryToDocument(MigrationEntry migEntry) {
-        final Document doc = new Document();
+        final Document migEntryDoc = new Document();
         if (migEntry.getId() != null) {
-            doc.put("_id", migEntry.getId());
+            migEntryDoc.put("_id", migEntry.getId());
         }
-        doc.put("module", migEntry.getModule());
-        doc.put("info", migEntry.getInfo());
-        doc.put("fromVersion", migEntry.getFromVersion());
-        doc.put("toVersion", migEntry.getToVersion());
-        doc.put("type", migEntry.getMigrationType().name());
-        doc.put("status", migEntry.getStatus().name());
-        doc.put("statusMessage", migEntry.getStatusMessage());
-        doc.put("createdAt", migEntry.getCreatedAt());
-        doc.put("updatedAt", migEntry.getUpdatedAt());
-        doc.put("repaired", migEntry.isRepaired());
-        doc.put("skipped", migEntry.isSkipped());
-        return doc;
+        migEntryDoc.put("module", migEntry.getModule());
+        migEntryDoc.put("fromVersion", migEntry.getFromVersion());
+        migEntryDoc.put("toVersion", migEntry.getToVersion());
+        migEntryDoc.put("type", migEntry.getMigrationType().name());
+        migEntryDoc.put("repaired", migEntry.isRepaired());
+        migEntryDoc.put("skipped", migEntry.isSkipped());
+        fillMigrationRunDataIntoDocument(migEntryDoc, migEntry);
+        if (migEntry.getReruns() != null) {
+            final BasicDBList migRunList = new BasicDBList();
+            for (MigrationRun migRun : migEntry.getReruns()) {
+                final Document migRunDoc = mapMigRunToDoc(migRun);
+                migRunList.add(migRunDoc);
+            }
+            migEntryDoc.put("reruns", migRunList);
+        }
+        return migEntryDoc;
+    }
+
+    private Document mapMigRunToDoc(MigrationRun migRun) {
+        final Document migRunDoc = new Document();
+        fillMigrationRunDataIntoDocument(migRunDoc, migRun);
+        return migRunDoc;
+    }
+
+    private void fillMigrationRunDataIntoDocument(Document migRunDoc, MigrationRun migRun) {
+        migRunDoc.put("info", migRun.getInfo());
+        migRunDoc.put("status", migRun.getStatus().name());
+        migRunDoc.put("statusMessage", migRun.getStatusMessage());
+        migRunDoc.put("createdAt", migRun.getCreatedAt());
+        migRunDoc.put("updatedAt", migRun.getUpdatedAt());
     }
 
     @Override
     public MigrationEntry findMigration(String fromVersion, String toVersion) {
-        return getMigramongoCollection()
-            .find(and(eq("fromVersion", fromVersion), eq("toVersion", toVersion)))
-            .map(d -> mapMigrationEntry(d))
-            .first();
+        return mapMigrationEntry(findMigrationDoc(fromVersion, toVersion));
+    }
+
+    private Document findMigrationDoc(String fromVersion, String toVersion) {
+        return getMigramongoCollection().find(and(eq("fromVersion", fromVersion), eq("toVersion", toVersion))).first();
     }
 
     @Override
@@ -185,6 +229,24 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
             }
         }
 
+    }
+
+    @Override
+    public MigrationEntry addRunToMigrationEntry(MigrationEntry migEntry, MigrationRun migRun) {
+        final Document migEntryDoc = findMigrationDoc(migEntry.getFromVersion(), migEntry.getToVersion());
+        if (migEntryDoc == null) {
+            return null;
+        }
+        final Document migRunDoc = mapMigRunToDoc(migRun);
+        BasicDBList list = migEntryDoc.get("reruns", BasicDBList.class);
+        if (list == null) {
+            list = new BasicDBList();
+            migEntryDoc.put("reruns", migRunDoc);
+        } else {
+            list.add(migRunDoc);
+        }
+        replaceMigrationEntry(migEntry, migEntryDoc);
+        return mapMigrationEntry(migEntryDoc);
     }
 
 }

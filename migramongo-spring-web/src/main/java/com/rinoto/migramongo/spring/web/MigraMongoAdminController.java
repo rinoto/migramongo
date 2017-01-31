@@ -17,8 +17,14 @@ public class MigraMongoAdminController {
     private MigraMongo migraMongo;
 
     /**
-     * Performs the DB Migration in a synchronous mode (it will return when the migration is finished)
+     * 'repairs' an entry in the <i>_migramongo</i> collection that has been marked as <code>ERROR</code> or has hanged in <code>IN_PROGRESS</code> status.
+     * <p>
+     * the entry gets defined by the <code>fromVersion</code> and <code>toVersion</code> parameters
+     * <p>
+     * if the entry does not exist, or it was not in one of the allowed states for repairing, an error status will be thrown
      * 
+     * @param fromVersion from
+     * @param toVersion to
      * @return status of the performed migration
      */
     @RequestMapping(value = "/migration/repair", method = RequestMethod.PUT, produces = {
@@ -27,6 +33,28 @@ public class MigraMongoAdminController {
             @RequestParam(value = "fromVersion", required = true) String fromVersion,
             @RequestParam(value = "toVersion", required = true) String toVersion) {
         return new ResponseEntity<>(migraMongo.repair(fromVersion, toVersion), HttpStatus.OK);
+    }
+
+    /**
+     * runs again an entry in the <i>_migramongo</i> collection
+     * <p>
+     * the entry gets defined by the <code>fromVersion</code> and <code>toVersion</code> parameters
+     * <p>
+     * <ul>
+     * <li>if the entry does not exist, an error status will be thrown
+     * <li>if it exists, it will be re-runned, and the status of the run will be shown
+     * </ul>
+     * 
+     * @param fromVersion from
+     * @param toVersion to
+     * @return status of the performed migration
+     */
+    @RequestMapping(value = "/migration/rerun", method = RequestMethod.PUT, produces = {
+        MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<MigraMongoStatus> rerun(
+            @RequestParam(value = "fromVersion", required = true) String fromVersion,
+            @RequestParam(value = "toVersion", required = true) String toVersion) {
+        return new ResponseEntity<>(migraMongo.rerun(fromVersion, toVersion), HttpStatus.OK);
     }
 
 }

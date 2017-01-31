@@ -3,6 +3,7 @@ package com.rinoto.migramongo;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -126,7 +127,7 @@ public class MigraMongo {
      */
     public MigraMongoStatus status(String fromVersion) {
         final Iterable<MigrationEntry> migrations = migrationHistoryService.findMigrations(fromVersion);
-        for (MigrationEntry migEntry : migrations) {
+        for (MigrationRun migEntry : migrations) {
             if (migEntry.getStatus() == MigrationStatus.ERROR) {
                 return MigraMongoStatus
                     .error("At least one migration script threw an error. Check individual entries")
@@ -210,7 +211,7 @@ public class MigraMongo {
      * <p>
      * the entry gets defined by the <code>fromVersion</code> and <code>toVersion</code> parameters
      * <p>
-     * if the entry does not exist, or it was not in one of the allowed states for reparing, an error status will be thrown
+     * if the entry does not exist, or it was not in one of the allowed states for repairing, an error status will be thrown
      * 
      * @param fromVersion fromVersion
      * @param toVersion toVersion
@@ -247,7 +248,51 @@ public class MigraMongo {
         return status;
     }
 
-    private boolean isInInconsistentState(MigrationEntry mig) {
+    public MigraMongoStatus rerun(String fromVersion, String toVersion) {
+        final MigrationRun migrationEntry = migrationHistoryService.findMigration(fromVersion, toVersion);
+        if (migrationEntry == null) {
+            return MigraMongoStatus.error(
+                "No migration entry found for fromVersion '" +
+                    fromVersion +
+                    "' and toVersion '" +
+                    toVersion +
+                    "' in the migration history");
+        }
+        final Optional<MongoMigrationScript> migScriptOpt = scriptLookupService
+            .findMongoScripts()
+            .stream()
+            .filter(
+                script -> fromVersion.equals(script.getMigrationInfo().getFromVersion()) &&
+                    toVersion.equals(script.getMigrationInfo().getToVersion()))
+            .findFirst();
+        if ( !migScriptOpt.isPresent()) {
+            return MigraMongoStatus.error(
+                "No migration script found for fromVersion '" + fromVersion + "' and toVersion '" + toVersion + "'");
+        }
+        final MongoMigrationScript mongoMigrationScript = migScriptOpt.get();
+        try {
+            mongoMigrationScript.migrate(database);
+        } catch (Exception e) {
+            logger.error(
+                "Error when re-running migration fromVersion " +
+                    fromVersion +
+                    " toVersion " +
+                    toVersion +
+                    ": " +
+                    e.getMessage());
+            return MigraMongoStatus.error(
+                "Error when re-running migration fromVersion " +
+                    fromVersion +
+                    " toVersion " +
+                    toVersion +
+                    ": " +
+                    e.getMessage());
+        }
+        return MigraMongoStatus
+            .ok("Re-run of Migration fromVersion " + fromVersion + " toVersion " + toVersion + " run succesfully");
+    }
+
+    private boolean isInInconsistentState(MigrationRun mig) {
         return mig != null && mig.getStatus() != MigrationStatus.OK;
     }
 

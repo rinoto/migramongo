@@ -2,6 +2,7 @@ package com.rinoto.migramongo.dao;
 
 import com.rinoto.migramongo.MigrationEntry;
 import com.rinoto.migramongo.MigrationInfo;
+import com.rinoto.migramongo.MigrationRun;
 
 public interface MigrationHistoryService {
 
@@ -26,7 +27,7 @@ public interface MigrationHistoryService {
      * @param migrationEntry entry to change
      * @return migEntry just changed
      */
-    MigrationEntry setMigrationStatusToManuallyRepaired(MigrationEntry migrationEntry);
+    MigrationRun setMigrationStatusToManuallyRepaired(MigrationEntry migrationEntry);
 
     /**
      * It changes the status of an existing <code>MigrationEntry</code> to {@link com.rinoto.migramongo.MigraMongoStatus.MigrationStatus#ERROR}
@@ -76,5 +77,7 @@ public interface MigrationHistoryService {
      * @return all migrations applied
      */
     Iterable<MigrationEntry> getAllMigrationsApplied();
+
+    MigrationEntry addRunToMigrationEntry(MigrationEntry entry, MigrationRun run);
 
 }

@@ -1,25 +1,19 @@
 package com.rinoto.migramongo;
 
-import java.util.Date;
+import java.util.List;
 
 import org.bson.types.ObjectId;
 
-import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
-
-public class MigrationEntry {
+public class MigrationEntry extends MigrationRun {
 
     private ObjectId id;
     private String module;
-    private String info;
     private String fromVersion;
     private String toVersion;
     private MigrationType migrationType;
-    private MigrationStatus status;
-    private String statusMessage;
-    private Date createdAt;
-    private Date updatedAt;
     private boolean repaired = false;
     private boolean skipped = false;
+    private List<MigrationRun> reruns;
 
     public ObjectId getId() {
         return id;
@@ -37,14 +31,6 @@ public class MigrationEntry {
         this.module = module;
     }
 
-    public String getInfo() {
-        return info;
-    }
-
-    public void setInfo(String info) {
-        this.info = info;
-    }
-
     public String getFromVersion() {
         return fromVersion;
     }
@@ -59,38 +45,6 @@ public class MigrationEntry {
 
     public void setToVersion(String toVersion) {
         this.toVersion = toVersion;
-    }
-
-    public Date getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public MigrationStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(MigrationStatus status) {
-        this.status = status;
-    }
-
-    public String getStatusMessage() {
-        return statusMessage;
-    }
-
-    public void setStatusMessage(String statusMessage) {
-        this.statusMessage = statusMessage;
-    }
-
-    public Date getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Date updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     @Override
@@ -138,6 +92,14 @@ public class MigrationEntry {
 
     public void setSkipped(boolean skipped) {
         this.skipped = skipped;
+    }
+
+    public List<MigrationRun> getReruns() {
+        return reruns;
+    }
+
+    public void setReruns(List<MigrationRun> reruns) {
+        this.reruns = reruns;
     }
 
     public enum MigrationType {
