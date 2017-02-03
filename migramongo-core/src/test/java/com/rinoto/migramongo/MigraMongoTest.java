@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -568,14 +570,118 @@ public class MigraMongoTest {
     }
 
     @Test
-    public void shouldMigrateInitialScriptEvenIfIncludedInInitialIsFalse() {
-        //        a;
-        migraMongo.migrate();
+    @Ignore("mockito is complaining because of UnnecessaryStubbingException")
+    public void shouldMigrateInitialScriptEvenIfIncludedInInitialIsFalse() throws Exception {
+        // given
+        final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
+        when(mockInitialScript.includedInInitialMigrationScript()).thenReturn(false);
+        when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
+        // when
+        final MigraMongoStatus status = migraMongo.migrate();
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        assertThat(status.migrationsApplied, hasSize(1));
+        verify(mockInitialScript).migrate(mongoDatabase);
     }
 
-    private void mockEntry(String fromVersion, String toVersion, MigrationStatus status) {
+    @Test
+    public void shouldNotRerunIfEntryDoesNotExist() throws Exception {
+        // when
+        final MigraMongoStatus status = migraMongo.rerun("NOTEXISTING1", "NOTEXISTING2");
+        // then
+        assertThat(status.status, is(MigrationStatus.ERROR));
+        assertThat(status.message, containsString("No migration entry found"));
+        assertThat(status.migrationsApplied, hasSize(0));
+    }
+
+    @Test
+    public void shouldNotRerunIfScriptDoesNotExist() throws Exception {
+        // given
+        mockEntry("1", "2", MigrationStatus.OK);
+        mockEntry("2", "3", MigrationStatus.OK);
+        final List<MongoMigrationScript> mongoScripts = Arrays.asList(mockMongoScript("1", "2", true));
+        when(lookupService.findMongoScripts()).thenReturn(mongoScripts);
+
+        // when
+        final MigraMongoStatus status = migraMongo.rerun("2", "3");
+
+        // then
+        assertThat(status.status, is(MigrationStatus.ERROR));
+        assertThat(status.message, containsString("No migration script found"));
+        assertThat(status.migrationsApplied, hasSize(0));
+    }
+
+    @Test
+    public void shouldRerunIfEntryAndScriptExist() throws Exception {
+        // given
+        final MigrationEntry entry = mockEntry("1", "2", MigrationStatus.OK);
+        final MongoMigrationScript mongoScript = mockMongoScript("1", "2", true);
+        final List<MongoMigrationScript> mongoScripts = Arrays.asList(mongoScript);
+        when(lookupService.findMongoScripts()).thenReturn(mongoScripts);
+        when(migEntryService.addRunToMigrationEntry(eq(entry), any(MigrationRun.class))).thenAnswer(i -> {
+            final MigrationRun migRun = (MigrationRun) i.getArguments()[1];
+            entry.setReruns(Arrays.asList(migRun));
+            return entry;
+        });
+
+        // when
+        final MigraMongoStatus status = migraMongo.rerun("1", "2");
+
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        assertThat(
+            status.message,
+            allOf(
+                containsString("Re-run of Migration"),
+                containsString("fromVersion 1"),
+                containsString("toVersion 2"),
+                containsString("successfully")));
+        assertThat(status.migrationsApplied, hasSize(1));
+        final MigrationEntry migrationApplied = status.migrationsApplied.get(0);
+        assertThat(migrationApplied.getReruns(), hasSize(1));
+        final MigrationRun migrationRun = migrationApplied.getReruns().get(0);
+        assertThat(migrationRun.status, is(MigrationStatus.OK));
+        assertThat(migrationRun.statusMessage, is("Migration completed correctly"));
+        verify(mongoScript).migrate(mongoDatabase);
+    }
+
+    @Test
+    public void shouldAddRerunEntryIfScriptFails() throws Exception {
+        // given
+        final MigrationEntry entry = mockEntry("1", "2", MigrationStatus.OK);
+        final MongoMigrationScript mongoScript = mockMongoScript("1", "2", new RuntimeException("whatever exception"));
+        final List<MongoMigrationScript> mongoScripts = Arrays.asList(mongoScript);
+        when(lookupService.findMongoScripts()).thenReturn(mongoScripts);
+        when(migEntryService.addRunToMigrationEntry(eq(entry), any(MigrationRun.class))).thenAnswer(i -> {
+            final MigrationRun migRun = (MigrationRun) i.getArguments()[1];
+            entry.setReruns(Arrays.asList(migRun));
+            return entry;
+        });
+
+        // when
+        final MigraMongoStatus status = migraMongo.rerun("1", "2");
+
+        // then
+        assertThat(status.status, is(MigrationStatus.ERROR));
+        assertThat(
+            status.message,
+            allOf(
+                containsString("Error when re-running migration"),
+                containsString("fromVersion 1"),
+                containsString("toVersion 2")));
+        assertThat(status.migrationsApplied, hasSize(1));
+        final MigrationEntry migrationApplied = status.migrationsApplied.get(0);
+        assertThat(migrationApplied.getReruns(), hasSize(1));
+        final MigrationRun migrationRun = migrationApplied.getReruns().get(0);
+        assertThat(migrationRun.status, is(MigrationStatus.ERROR));
+        assertThat(migrationRun.statusMessage, is("whatever exception"));
+        verify(mongoScript).migrate(mongoDatabase);
+    }
+
+    private MigrationEntry mockEntry(String fromVersion, String toVersion, MigrationStatus status) {
         final MigrationEntry migEntry = createMigrationEntry(fromVersion, toVersion, status);
         when(migEntryService.findMigration(fromVersion, toVersion)).thenReturn(migEntry);
+        return migEntry;
     }
 
     public static MigrationEntry createMigrationEntry(String fromVersion, String toVersion, MigrationStatus status) {

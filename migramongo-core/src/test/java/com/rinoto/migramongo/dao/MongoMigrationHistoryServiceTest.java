@@ -21,6 +21,7 @@ import com.rinoto.migramongo.InitialMigrationInfo;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
 import com.rinoto.migramongo.MigrationEntry;
 import com.rinoto.migramongo.MigrationInfo;
+import com.rinoto.migramongo.MigrationRun;
 
 public class MongoMigrationHistoryServiceTest {
 
@@ -273,10 +274,67 @@ public class MongoMigrationHistoryServiceTest {
         assertThat(migrationHistoryService.findMigration("5", "6"), nullValue());
     }
 
-    private void addMigration(final MigrationInfo migrationInfo) throws InterruptedException {
+    @Test
+    public void shouldAddRerunToMigEntry() throws Exception {
+        // given
+        final MigrationEntry migEntry = addMigration(new MigrationInfo("1", "2"));
+        final MigrationRun migRun = new MigrationRun().complete(MigrationStatus.OK, "it's ok");
+
+        // when
+        migrationHistoryService.addRunToMigrationEntry(migEntry, migRun);
+
+        final MigrationEntry migEntyUpdated = migrationHistoryService.findMigration("1", "2");
+        assertThat(migEntyUpdated.getReruns(), hasSize(1));
+        assertMigrationRun(migEntyUpdated.getReruns().get(0), migRun);
+    }
+
+    @Test
+    public void shouldNotAddRerunToMigEntryIfEntryDoesNotExist() throws Exception {
+        // given
+        final MigrationEntry migEntry = new MigrationEntry();
+        migEntry.setFromVersion("1");
+        migEntry.setToVersion("2");
+        final MigrationRun migRun = new MigrationRun().complete(MigrationStatus.OK, "it's ok");
+
+        // when
+        final MigrationEntry migEntryWithRuns = migrationHistoryService.addRunToMigrationEntry(migEntry, migRun);
+
+        assertThat(migEntryWithRuns, nullValue());
+    }
+
+    private void assertMigrationRun(MigrationRun migrationRun, MigrationRun migRun) {
+        assertThat(migrationRun.getStatus(), is(migRun.getStatus()));
+        assertThat(migrationRun.getStatusMessage(), is(migRun.getStatusMessage()));
+        assertThat(migrationRun.getCreatedAt(), is(migRun.getCreatedAt()));
+        assertThat(migrationRun.getUpdatedAt(), is(migRun.getUpdatedAt()));
+
+    }
+
+    @Test
+    public void shouldAddMultipleRerunsToMigEntry() throws Exception {
+        // given
+        final MigrationEntry migEntry = addMigration(new MigrationInfo("1", "2"));
+        final MigrationRun migRun0 = new MigrationRun().complete(MigrationStatus.OK, "it's ok");
+        final MigrationRun migRun1 = new MigrationRun().complete(MigrationStatus.ERROR, "it's not ok");
+        final MigrationRun migRun2 = new MigrationRun().complete(MigrationStatus.OK, "it's ok again");
+
+        // when
+        migrationHistoryService.addRunToMigrationEntry(migEntry, migRun0);
+        migrationHistoryService.addRunToMigrationEntry(migEntry, migRun1);
+        migrationHistoryService.addRunToMigrationEntry(migEntry, migRun2);
+
+        final MigrationEntry migEntyUpdated = migrationHistoryService.findMigration("1", "2");
+        assertThat(migEntyUpdated.getReruns(), hasSize(3));
+        assertMigrationRun(migEntyUpdated.getReruns().get(0), migRun0);
+        assertMigrationRun(migEntyUpdated.getReruns().get(1), migRun1);
+        assertMigrationRun(migEntyUpdated.getReruns().get(2), migRun2);
+    }
+
+    private MigrationEntry addMigration(final MigrationInfo migrationInfo) throws InterruptedException {
         Thread.sleep(1);
         final MigrationEntry migInProgress = migrationHistoryService.insertMigrationStatusInProgress(migrationInfo);
         migrationHistoryService.setMigrationStatusToFinished(migInProgress);
+        return migInProgress;
     }
 
     private <T extends Object> List<T> toList(Iterable<T> iterable) {

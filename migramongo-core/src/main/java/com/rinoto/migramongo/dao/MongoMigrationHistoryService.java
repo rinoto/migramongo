@@ -6,11 +6,11 @@ import static com.mongodb.client.model.Filters.eq;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
-import com.mongodb.BasicDBList;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -126,13 +126,13 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         if (skipped != null) {
             migEntry.setSkipped(skipped);
         }
-        final BasicDBList reruns = doc.get("reruns", BasicDBList.class);
+        @SuppressWarnings("unchecked")
+        final List<Document> reruns = doc.get("reruns", List.class);
         if (reruns != null) {
-            final List<MigrationRun> rerunsList = new ArrayList<>();
-            for (Object migRunDoc : reruns) {
-                final MigrationRun migRun = mapMigrationRun((Document) migRunDoc);
-                rerunsList.add(migRun);
-            }
+            final List<MigrationRun> rerunsList = reruns
+                .stream()
+                .map(d -> mapMigrationRun(d))
+                .collect(Collectors.toList());
             migEntry.setReruns(rerunsList);
         }
         return migEntry;
@@ -164,14 +164,7 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         migEntryDoc.put("repaired", migEntry.isRepaired());
         migEntryDoc.put("skipped", migEntry.isSkipped());
         fillMigrationRunDataIntoDocument(migEntryDoc, migEntry);
-        if (migEntry.getReruns() != null) {
-            final BasicDBList migRunList = new BasicDBList();
-            for (MigrationRun migRun : migEntry.getReruns()) {
-                final Document migRunDoc = mapMigRunToDoc(migRun);
-                migRunList.add(migRunDoc);
-            }
-            migEntryDoc.put("reruns", migRunList);
-        }
+        //there cannot be any MigrationRun when mapping a migrationEntry to a Doc, because a MigrationRun can only be added via #addMigrationRun
         return migEntryDoc;
     }
 
@@ -238,13 +231,14 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
             return null;
         }
         final Document migRunDoc = mapMigRunToDoc(migRun);
-        BasicDBList list = migEntryDoc.get("reruns", BasicDBList.class);
-        if (list == null) {
-            list = new BasicDBList();
-            migEntryDoc.put("reruns", migRunDoc);
-        } else {
-            list.add(migRunDoc);
+        @SuppressWarnings("unchecked")
+        List<Document> reRunsList = migEntryDoc.get("reruns", List.class);
+        if (reRunsList == null) {
+            reRunsList = new ArrayList<Document>();
         }
+        reRunsList.add(migRunDoc);
+        migEntryDoc.put("reruns", reRunsList);
+
         replaceMigrationEntry(migEntry, migEntryDoc);
         return mapMigrationEntry(migEntryDoc);
     }

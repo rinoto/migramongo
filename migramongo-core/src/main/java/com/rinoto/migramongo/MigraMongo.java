@@ -249,7 +249,7 @@ public class MigraMongo {
     }
 
     public MigraMongoStatus rerun(String fromVersion, String toVersion) {
-        final MigrationRun migrationEntry = migrationHistoryService.findMigration(fromVersion, toVersion);
+        final MigrationEntry migrationEntry = migrationHistoryService.findMigration(fromVersion, toVersion);
         if (migrationEntry == null) {
             return MigraMongoStatus.error(
                 "No migration entry found for fromVersion '" +
@@ -269,9 +269,18 @@ public class MigraMongo {
             return MigraMongoStatus.error(
                 "No migration script found for fromVersion '" + fromVersion + "' and toVersion '" + toVersion + "'");
         }
+
         final MongoMigrationScript mongoMigrationScript = migScriptOpt.get();
+        final MigrationRun migrationRun = new MigrationRun();
         try {
             mongoMigrationScript.migrate(database);
+            final MigrationEntry migrationEntryWithRun = migrationHistoryService.addRunToMigrationEntry(
+                migrationEntry,
+                migrationRun.complete(MigrationStatus.OK, "Migration completed correctly"));
+            return MigraMongoStatus
+                .ok("Re-run of Migration fromVersion " + fromVersion + " toVersion " + toVersion + " run successfully")
+                .addEntry(migrationEntryWithRun);
+
         } catch (Exception e) {
             logger.error(
                 "Error when re-running migration fromVersion " +
@@ -280,16 +289,18 @@ public class MigraMongo {
                     toVersion +
                     ": " +
                     e.getMessage());
-            return MigraMongoStatus.error(
-                "Error when re-running migration fromVersion " +
-                    fromVersion +
-                    " toVersion " +
-                    toVersion +
-                    ": " +
-                    e.getMessage());
+            final MigrationEntry migrationEntryWithRun = migrationHistoryService
+                .addRunToMigrationEntry(migrationEntry, migrationRun.complete(MigrationStatus.ERROR, e.getMessage()));
+            return MigraMongoStatus
+                .error(
+                    "Error when re-running migration fromVersion " +
+                        fromVersion +
+                        " toVersion " +
+                        toVersion +
+                        ": " +
+                        e.getMessage())
+                .addEntry(migrationEntryWithRun);
         }
-        return MigraMongoStatus
-            .ok("Re-run of Migration fromVersion " + fromVersion + " toVersion " + toVersion + " run succesfully");
     }
 
     private boolean isInInconsistentState(MigrationRun mig) {

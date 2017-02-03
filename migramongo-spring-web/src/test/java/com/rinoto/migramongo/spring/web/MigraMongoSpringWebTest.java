@@ -121,4 +121,14 @@ public class MigraMongoSpringWebTest {
         verify(migraMongo).repair("1", "2");
     }
 
+    @Test
+    public void shouldRerun() throws Exception {
+        //when
+        this.mockMvc
+            .perform(put("/mongo/admin/migration/rerun?fromVersion=1&toVersion=2").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk());
+        //then
+        verify(migraMongo).rerun("1", "2");
+    }
+
 }
