@@ -6,10 +6,10 @@
 		<artifactId>migramongo-parent</artifactId>
 		<version>0.7-SNAPSHOT</version>
 	</parent>
-	<artifactId>migramongo-java</artifactId>
+	<artifactId>migramongo-reflections</artifactId>
 	<packaging>jar</packaging>
-	<name>migramongo java</name>
-	<description>Migramongo implementation with simple class discovery</description>
+	<name>migramongo reflections</name>
+	<description>Migramongo implementation using the reflections package for discovery</description>
 
 	<dependencies>
 		<dependency>
