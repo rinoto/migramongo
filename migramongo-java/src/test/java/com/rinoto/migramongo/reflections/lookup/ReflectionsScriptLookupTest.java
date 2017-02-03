@@ -11,7 +11,6 @@ import java.util.Collection;
 import org.junit.Test;
 
 import com.rinoto.migramongo.InitialMongoMigrationScript;
-import com.rinoto.migramongo.MigrationInfo;
 import com.rinoto.migramongo.MongoMigrationScript;
 import com.rinoto.migramongo.reflections.lookup.classes.InitialMongoScriptForTesting;
 import com.rinoto.migramongo.reflections.lookup.multiple.InitialMongoScriptForTesting1;
@@ -47,9 +46,9 @@ public class ReflectionsScriptLookupTest {
         assertThat(
             mongoScripts,
             containsInAnyOrder(
-                hasProperty("migrationInfo", is(new MigrationInfo("1", "2"))),
-                hasProperty("migrationInfo", is(new MigrationInfo("2", "3"))),
-                hasProperty("migrationInfo", is(new MigrationInfo("3", "4")))));
+                hasProperty("migrationInfo", hasProperty("fromVersion", is("1"))),
+                hasProperty("migrationInfo", hasProperty("fromVersion", is("2"))),
+                hasProperty("migrationInfo", hasProperty("fromVersion", is("3")))));
     }
 
     @Test(expected = IllegalStateException.class)
