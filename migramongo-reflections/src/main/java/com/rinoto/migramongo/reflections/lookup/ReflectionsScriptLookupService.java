@@ -11,6 +11,11 @@ import com.rinoto.migramongo.InitialMongoMigrationScript;
 import com.rinoto.migramongo.MongoMigrationScript;
 import com.rinoto.migramongo.lookup.ScriptLookupService;
 
+/**
+ * Implementation of {@link com.rinoto.migramongo.lookup.ScriptLookupService} that uses the <a href="https://github.com/ronmamo/reflections">ronmamo reflections library</a> to find the classes implemeting the {@link com.rinoto.migramongo.MongoMigrationScript}s
+ * 
+ * @author rinoto
+ */
 public class ReflectionsScriptLookupService implements ScriptLookupService {
 
     final Reflections reflections;
@@ -54,7 +59,7 @@ public class ReflectionsScriptLookupService implements ScriptLookupService {
         final List<MongoMigrationScript> migScripts = mongoScriptClasses
             .stream()
             .filter(ms -> !InitialMongoMigrationScript.class.isAssignableFrom(ms))
-            .map(ms -> instantiate(ms))
+            .map(ms -> (MongoMigrationScript) instantiate(ms))
             .collect(Collectors.toList());
 
         return migScripts;

@@ -24,7 +24,7 @@ Add the `migramongo-spring` dependency to your project:
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring</artifactId>
-    <version>0.7</version>
+    <version>0.8</version>
 </dependency>
 ```
 #### Configuration
@@ -186,37 +186,44 @@ public class MigraMongoController extends MigraMongoBaseController {
     //all endpoints are inherited from <code>MigraMongoBaseController</code>
 
 }
+```
 
 The Controller provides methods to execute the migration (sync or async), get the status, and the history. Have a look at `MigraMongoBaseController` for the complete list of methods.
 
-```
 In order to use the `MigraMongoBaseController`, you will need the `migramongo-spring-web` dependency:
 
 ```xml
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring-web</artifactId>
-    <version>0.7</version>
+    <version>0.8</version>
 </dependency>
 ```
 
 
 ### <a name="migraMongoWithoutSpring"></a>Using migramongo without Spring
 It's basically the same as with Spring, you just need to change
- the dependency to `migramongo-core` 
+ the dependency to `migramongo-reflections` 
 
 ```xml
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
-    <artifactId>migramongo-core</artifactId>
-    <version>0.7</version>
+    <artifactId>migramongo-reflections</artifactId>
+    <version>0.8</version>
 </dependency>
 ```
 
-And:
+And your migration script classes do not need to be a Spring Bean, they just must implement the `InitialMongoMigrationScript` and `MongoMigrationScript` interfaces
 
-* your migration script classes do not need to be a Spring Bean, they just must implement the `InitialMongoMigrationScript` and `MongoMigrationScript` interfaces
-* you need to provide a lookup mechanism when creating the migramongo instance, by providing an implementation of `ScriptLookupService`
+You can use the class `ReflectionsMigraMongo` to create an instance of `MigraMongo`. 
+You just have to pass the instance of your `MongoDatabase`, and the name of the base package where your `MigraMongoScript`s are located:
+
+
+```java
+final ReflectionsMigraMongo migramongo = new ReflectionsMigraMongo(mongoDatabase, "com.yourpackage");
+```
+
+The `ReflectionsMigraMongo` uses internally  [ronmamo reflections library](https://github.com/ronmamo/reflections) for the lookup of the classes.
 
 
 ### How it works
