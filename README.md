@@ -176,7 +176,7 @@ Have a look at the  [source code](https://github.com/rinoto/migramongo/blob/mast
 
 ##### Calling the migration explicitly calling a HTTP Endpoint.
 
-You can also register a Spring Controller that calls the migramongo methods. Just make sure you secure it properly!
+You can also register two Spring Controllers that call the migramongo methods: `MigraMongoBaseController` and `MigraMongoAdminController` . Just make sure you secure them properly!
 The following is an example of registering a Controller and calling the migramongo methods from it:
 
 ```java
@@ -188,9 +188,10 @@ public class MigraMongoController extends MigraMongoBaseController {
 }
 ```
 
-The Controller provides methods to execute the migration (sync or async), get the status, and the history. Have a look at `MigraMongoBaseController` for the complete list of methods.
+The `MigraMongoBaseController` provides methods to execute the migration (sync or async), get the status, and the history. It's advisable to secure the calls to this methods.
+The `MigraMongoAdminController` provides methods to re-run a migration, delete the db locks, and repair an entry. The methods in this controller MUST be secured.
 
-In order to use the `MigraMongoBaseController`, you will need the `migramongo-spring-web` dependency:
+In order to use the controllers, you will need the `migramongo-spring-web` dependency:
 
 ```xml
 <dependency>
@@ -220,7 +221,7 @@ You just have to pass the instance of your `MongoDatabase`, and the name of the 
 
 
 ```java
-final ReflectionsMigraMongo migramongo = new ReflectionsMigraMongo(mongoDatabase, "com.yourpackage");
+   ReflectionsMigraMongo migramongo = new ReflectionsMigraMongo(mongoDatabase, "com.yourpackage");
 ```
 
 The `ReflectionsMigraMongo` uses internally  [ronmamo reflections library](https://github.com/ronmamo/reflections) for the lookup of the classes.

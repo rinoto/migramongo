@@ -107,7 +107,7 @@ public class MigraMongoSpringWebTest {
     @Test
     public void shouldDestroyLocks() throws Exception {
         //when - then
-        this.mockMvc.perform(delete("/mongo/migration/lock")).andExpect(status().isOk());
+        this.mockMvc.perform(delete("/mongo/admin/migration/lock")).andExpect(status().isOk());
         verify(migraMongo).destroyLocks();
     }
 

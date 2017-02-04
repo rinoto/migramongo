@@ -57,4 +57,12 @@ public class MigraMongoAdminController {
         return new ResponseEntity<>(migraMongo.rerun(fromVersion, toVersion), HttpStatus.OK);
     }
 
+    /**
+     * It removes the locks. To be used in the case when the locks in the DB are in an inconsistent state.
+     */
+    @RequestMapping(value = "/migration/lock", method = RequestMethod.DELETE)
+    public void deleteLocks() {
+        migraMongo.destroyLocks();
+    }
+
 }
