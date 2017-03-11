@@ -81,13 +81,12 @@ public class MigraMongoTest {
     }
 
     @Test
-    public void shouldFailIfNoInitialScriptIsProvided() {
+    public void shouldNotMigrateAnythingIfNoInitialScriptIsProvided() {
         // given
         // when
         final MigraMongoStatus status = migraMongo.migrate();
         // then
-        assertThat(status.status, is(MigrationStatus.ERROR));
-        assertThat(status.message, containsString("no last migration script found"));
+        assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(0));
     }
 
@@ -122,8 +121,19 @@ public class MigraMongoTest {
     }
 
     @Test
-    public void shouldReturnStatusInDryRunWhenExceptionThrown() throws Exception {
-        // given - if no initial exists, exception will be thrown
+    public void shouldReturnStatusInDryRunWhenNoInitialScriptFound() throws Exception {
+        // given - if no initial exists, nothing will be migrated
+        // when
+        final MigraMongoStatus status = migraMongo.dryRun();
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        assertThat(status.migrationsApplied, hasSize(0));
+    }
+
+    @Test
+    public void shouldReturnErrorStatusInDryRunWhenExceptionIsThrown() throws Exception {
+        //given
+        mockLastMigrationApplied("1", "2", MigrationStatus.ERROR);
         // when
         final MigraMongoStatus status = migraMongo.dryRun();
         // then
@@ -718,7 +728,11 @@ public class MigraMongoTest {
     }
 
     private MigrationRun mockLastMigrationApplied(String from, String to) {
-        final MigrationEntry migEntry = createMigrationEntry(from, to, MigrationStatus.OK);
+        return mockLastMigrationApplied(from, to, MigrationStatus.OK);
+    }
+
+    private MigrationRun mockLastMigrationApplied(String from, String to, MigrationStatus status) {
+        final MigrationEntry migEntry = createMigrationEntry(from, to, status);
         when(migEntryService.getLastMigrationApplied()).thenReturn(migEntry);
         return migEntry;
     }

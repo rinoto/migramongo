@@ -29,6 +29,9 @@ public class ReflectionsScriptLookupService implements ScriptLookupService {
 
         final Set<Class<? extends InitialMongoMigrationScript>> initialMongoScriptClasses = reflections
             .getSubTypesOf(InitialMongoMigrationScript.class);
+        if (initialMongoScriptClasses.isEmpty()) {
+            return null;
+        }
         if (initialMongoScriptClasses.size() > 1) {
             throw new IllegalStateException(
                 "There cannot be more than one InitialMigrationScript!. Found " +

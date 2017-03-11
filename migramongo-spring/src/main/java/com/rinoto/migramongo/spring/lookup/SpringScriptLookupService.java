@@ -19,11 +19,12 @@ public class SpringScriptLookupService implements ScriptLookupService {
 
     @Override
     public InitialMongoMigrationScript findInitialScript() {
-        // final Collection<Object> values =
-        // appContext.getBeansWithAnnotation(InitialMongoMigrationScript.class).values();
-        Collection<InitialMongoMigrationScript> values = appContext
+        final Collection<InitialMongoMigrationScript> values = appContext
             .getBeansOfType(InitialMongoMigrationScript.class)
             .values();
+        if (values.isEmpty()) {
+            return null;
+        }
         if (values.size() > 1) {
             throw new IllegalStateException(
                 "There cannot be more than one InitialMigrationScript!. Found " + values.size() + ": " + values);

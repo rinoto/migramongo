@@ -2,6 +2,7 @@ package com.rinoto.migramongo;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -192,10 +193,12 @@ public class MigraMongo {
         if (lastMigrationApplied == null) {
             final InitialMongoMigrationScript initialMigrationScript = scriptLookupService.findInitialScript();
             if (initialMigrationScript == null) {
-                throw new MongoMigrationException(
-                    new MigraMongoStatus(
-                        MigrationStatus.ERROR,
-                        "no last migration script found, and no initial migration script provided!"));
+                //if no initial found, we do not migrate anything
+                return Collections.emptyList();
+                //                throw new MongoMigrationException(
+                //                    new MigraMongoStatus(
+                //                        MigrationStatus.ERROR,
+                //                        "no last migration script found, and no initial migration script provided!"));
             }
             migrationScriptsToApply.add(initialMigrationScript);
             fromVersion = initialMigrationScript.getMigrationInfo().getToVersion();

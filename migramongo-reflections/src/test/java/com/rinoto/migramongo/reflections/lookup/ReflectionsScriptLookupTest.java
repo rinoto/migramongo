@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.Collection;
 
@@ -69,6 +70,17 @@ public class ReflectionsScriptLookupTest {
 
         //when - expect exception
         lookup.findInitialScript();
+    }
+
+    @Test
+    public void shouldReturnNullIfNoInitialScriptFound() {
+        //given
+        final ReflectionsScriptLookupService lookup = new ReflectionsScriptLookupService("com.rinoto.nonexisting");
+
+        //when - expect exception
+        final InitialMongoMigrationScript found = lookup.findInitialScript();
+
+        assertThat(found, nullValue());
     }
 
 }
