@@ -29,6 +29,7 @@ public class MigraMongo {
     private final LockService lockService;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private MongoDatabase database;
+    private Runnable asyncInitializerFuntion;
 
     public MigraMongo(
             MongoDatabase database,
@@ -39,6 +40,10 @@ public class MigraMongo {
         this.migrationHistoryService = migrationEntryService;
         this.lockService = lockService;
         this.scriptLookupService = scriptLookupService;
+    }
+
+    public void setAsyncInitializerFunction(Runnable function) {
+        this.asyncInitializerFuntion = function;
     }
 
     /**
@@ -106,6 +111,11 @@ public class MigraMongo {
         logger.debug("Migration will be performed asynchronously");
         executorService.submit(() -> {
             logger.debug("Running migration in a separate thread");
+            if (asyncInitializerFuntion != null) {
+                logger.debug("Executing async initializer function");
+                asyncInitializerFuntion.run();
+                logger.debug("Async initializer function executed");
+            }
             final MigraMongoStatus status = migrate();
             logger.debug("Migration in a separate thread returned status {}", status);
         });

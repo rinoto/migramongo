@@ -1,5 +1,6 @@
 package com.rinoto.migramongo.reflections.lookup;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -47,8 +48,9 @@ public class ReflectionsScriptLookupService implements ScriptLookupService {
 
     private <T extends MongoMigrationScript> T instantiate(Class<T> clazz) {
         try {
-            return clazz.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
+            return clazz.getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+                | NoSuchMethodException | SecurityException e) {
             throw new IllegalStateException("Exception while instantiating " + clazz, e);
         }
     }

@@ -1,19 +1,10 @@
 package com.rinoto.migramongo;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
+import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,7 +21,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
@@ -185,12 +176,13 @@ public class MigraMongoTest {
         // given
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
-        final List<MongoMigrationScript> migrationScripts = Arrays.asList(
-            mockMongoScript("1", "2"),
-            mockMongoScript("2", "8"),
-            mockMongoScript("A", "B"),
-            mockMongoScript("B", "C"),
-            mockMongoScript("8", "9"));
+        final List<MongoMigrationScript> migrationScripts = Arrays
+            .asList(
+                mockMongoScript("1", "2"),
+                mockMongoScript("2", "8"),
+                mockMongoScript("A", "B"),
+                mockMongoScript("B", "C"),
+                mockMongoScript("8", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -251,10 +243,11 @@ public class MigraMongoTest {
         // -- last entry in db
         mockLastEntry("1", "1");
         // - mig scripts provided
-        final List<MongoMigrationScript> migrationScripts = Arrays.asList(
-            mockMongoScript("1", "2"),
-            mockMongoScript("2", "8", new RuntimeException("script failing")),
-            mockMongoScript("8", "9"));
+        final List<MongoMigrationScript> migrationScripts = Arrays
+            .asList(
+                mockMongoScript("1", "2"),
+                mockMongoScript("2", "8", new RuntimeException("script failing")),
+                mockMongoScript("8", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -298,11 +291,12 @@ public class MigraMongoTest {
         // -- last entry in db
         mockLastEntry("4", "5");
         // - mig scripts provided
-        final List<MongoMigrationScript> migrationScripts = Arrays.asList(
-            mockMongoScript("1", "2"),
-            mockMongoScript("2", "8"),
-            mockMongoScript("5", "7"),
-            mockMongoScript("7", "8"));
+        final List<MongoMigrationScript> migrationScripts = Arrays
+            .asList(
+                mockMongoScript("1", "2"),
+                mockMongoScript("2", "8"),
+                mockMongoScript("5", "7"),
+                mockMongoScript("7", "8"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -401,10 +395,12 @@ public class MigraMongoTest {
     @Test
     public void shouldReturnAppliedEntries() throws Exception {
         // given
-        when(migEntryService.getAllMigrationsApplied()).thenReturn(
-            Arrays.asList(
-                createMigrationEntry("1.0", "2.0", MigrationStatus.OK),
-                createMigrationEntry("2.0", "3.0", MigrationStatus.OK)));
+        when(migEntryService.getAllMigrationsApplied())
+            .thenReturn(
+                Arrays
+                    .asList(
+                        createMigrationEntry("1.0", "2.0", MigrationStatus.OK),
+                        createMigrationEntry("2.0", "3.0", MigrationStatus.OK)));
         // when
         final List<MigrationEntry> migrationEntries = migraMongo.getMigrationEntries();
         // then
@@ -431,6 +427,27 @@ public class MigraMongoTest {
     }
 
     @Test
+    public void shouldExecuteAsynchFunction() throws Exception {
+        // given
+        final CountDownLatch asyncFunctionLatch = new CountDownLatch(1);
+        migraMongo.setAsyncInitializerFunction(() -> asyncFunctionLatch.countDown());
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
+        doAnswer(i -> {
+            latch.countDown();
+            return null;
+        }).when(mockInitialScript).migrate(Mockito.any(MongoDatabase.class));
+        when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
+        // when
+        migraMongo.migrateAsync();
+
+        // then
+        latch.await(2, TimeUnit.SECONDS);
+        assertThat(asyncFunctionLatch.getCount(), is(0L));
+    }
+
+    @Test
     public void shouldDeliverOkStatusWhenEverythingOk() throws Exception {
         // given
         when(migEntryService.findMigrations("1"))
@@ -445,11 +462,13 @@ public class MigraMongoTest {
     @Test
     public void shouldDeliverInProgressStatusWhenAtLeastOneEntryIsInProgress() throws Exception {
         // given
-        when(migEntryService.findMigrations("1")).thenReturn(
-            Arrays.asList(
-                createMigrationEntry("1", "2", MigrationStatus.OK),
-                createMigrationEntry("1", "2", MigrationStatus.IN_PROGRESS),
-                createMigrationEntry("1", "2", MigrationStatus.OK)));
+        when(migEntryService.findMigrations("1"))
+            .thenReturn(
+                Arrays
+                    .asList(
+                        createMigrationEntry("1", "2", MigrationStatus.OK),
+                        createMigrationEntry("1", "2", MigrationStatus.IN_PROGRESS),
+                        createMigrationEntry("1", "2", MigrationStatus.OK)));
         // when
         final MigraMongoStatus status = migraMongo.status("1");
         // then
@@ -460,11 +479,13 @@ public class MigraMongoTest {
     @Test
     public void shouldDeliverErrorStatusWhenAtLeastOneEntryIsInProgress() throws Exception {
         // given
-        when(migEntryService.findMigrations("1")).thenReturn(
-            Arrays.asList(
-                createMigrationEntry("1", "2", MigrationStatus.OK),
-                createMigrationEntry("1", "2", MigrationStatus.ERROR),
-                createMigrationEntry("1", "2", MigrationStatus.OK)));
+        when(migEntryService.findMigrations("1"))
+            .thenReturn(
+                Arrays
+                    .asList(
+                        createMigrationEntry("1", "2", MigrationStatus.OK),
+                        createMigrationEntry("1", "2", MigrationStatus.ERROR),
+                        createMigrationEntry("1", "2", MigrationStatus.OK)));
         // when
         final MigraMongoStatus status = migraMongo.status("1");
         // then
