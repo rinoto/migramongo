@@ -22,6 +22,7 @@ public interface MongoMigrationScript {
      * It performs the actual migration. This method will be called by <code>MigraMongo</code>, and the status (ok, failed) will be written to the <code>_migramongo</code> collection in the DB
      * 
      * @param database mongodb to use
+     * @throws exception
      */
     void migrate(MongoDatabase database) throws Exception;
 

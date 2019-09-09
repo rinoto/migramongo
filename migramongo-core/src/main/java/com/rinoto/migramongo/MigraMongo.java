@@ -90,13 +90,12 @@ public class MigraMongo {
 
     /**
      * Same as migrate, but asynchronous.
-     * <p>
      * <ul>
      * <li>if there is nothing to migrate, a status with OK will be returned
      * <li>if there are items to migrate, a status with IN_PROGRESS and the items that will be migrated will be returned
      * </ul>
      * 
-     * @return
+     * @return the status of the migration - will always be ok, as the migration runs asynchronously
      */
     public MigraMongoStatus migrateAsync() {
         final MigraMongoStatus dryRunStatus = dryRun();
@@ -120,7 +119,7 @@ public class MigraMongo {
      * <p>
      * if fromVersion is null, it will get all applied migrations
      * 
-     * @param fromVersion
+     * @param fromVersion the version we want to get the status from
      * @return status of the applied migrations since the specified version
      */
     public MigraMongoStatus status(String fromVersion) {
@@ -375,7 +374,7 @@ public class MigraMongo {
     /**
      * Returns the migration entries that have been applied
      * 
-     * @return
+     * @return the list of migration entries
      */
     public List<MigrationEntry> getMigrationEntries() {
         return toList(migrationHistoryService.getAllMigrationsApplied());

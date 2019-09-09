@@ -66,7 +66,7 @@ public interface MigrationHistoryService {
     /**
      * Finds all migrations applied since the specified version, order asc
      * 
-     * @param fromVersion
+     * @param fromVersion the version we want to get the entries from
      * @return all migrations applied since the specified version
      */
     Iterable<MigrationEntry> findMigrations(String fromVersion);
