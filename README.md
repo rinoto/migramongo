@@ -24,7 +24,7 @@ Add the `migramongo-spring` dependency to your project:
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring</artifactId>
-    <version>0.8</version>
+    <version>1.0</version>
 </dependency>
 ```
 #### Configuration

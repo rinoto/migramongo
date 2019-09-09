@@ -1,10 +1,6 @@
 package com.rinoto.migramongo;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -85,6 +81,7 @@ public class MigraMongo {
             final List<MongoMigrationScript> migrationScriptsToApply = findMigrationScriptsToApply();
             return migrate(migrationScriptsToApply);
         } catch (MongoMigrationException e) {
+            logger.error("Exception caught while migrating", e);
             return e.getStatus();
         } finally {
             lockService.releaseLock();
@@ -223,30 +220,33 @@ public class MigraMongo {
     public MigraMongoStatus repair(String fromVersion, String toVersion) {
         final MigrationEntry migrationEntry = migrationHistoryService.findMigration(fromVersion, toVersion);
         if (migrationEntry == null) {
-            return MigraMongoStatus.error(
-                "No migration entry found for fromVersion '" + fromVersion + "' and toVersion '" + toVersion + "'");
+            return MigraMongoStatus
+                .error(
+                    "No migration entry found for fromVersion '" + fromVersion + "' and toVersion '" + toVersion + "'");
         }
         if (migrationEntry.getStatus() == MigrationStatus.OK) {
-            return MigraMongoStatus.error(
-                "Migration entry with fromVersion '" +
-                    fromVersion +
-                    "' and toVersion '" +
-                    toVersion +
-                    "' has already status '" +
-                    migrationEntry.getStatus() +
-                    "'. Nothing will be done");
+            return MigraMongoStatus
+                .error(
+                    "Migration entry with fromVersion '" +
+                        fromVersion +
+                        "' and toVersion '" +
+                        toVersion +
+                        "' has already status '" +
+                        migrationEntry.getStatus() +
+                        "'. Nothing will be done");
         }
         final MigrationStatus previousStatus = migrationEntry.getStatus();
         final MigrationEntry correctedMigrationEntry = migrationHistoryService
             .setMigrationStatusToFinished(migrationEntry);
-        final MigraMongoStatus status = MigraMongoStatus.ok(
-            "Status of migrationEntry " +
-                migrationEntry +
-                " changed from '" +
-                previousStatus +
-                "' to '" +
-                MigrationStatus.OK +
-                "'");
+        final MigraMongoStatus status = MigraMongoStatus
+            .ok(
+                "Status of migrationEntry " +
+                    migrationEntry +
+                    " changed from '" +
+                    previousStatus +
+                    "' to '" +
+                    MigrationStatus.OK +
+                    "'");
         status.addEntry(correctedMigrationEntry);
         return status;
     }
@@ -254,12 +254,13 @@ public class MigraMongo {
     public MigraMongoStatus rerun(String fromVersion, String toVersion) {
         final MigrationEntry migrationEntry = migrationHistoryService.findMigration(fromVersion, toVersion);
         if (migrationEntry == null) {
-            return MigraMongoStatus.error(
-                "No migration entry found for fromVersion '" +
-                    fromVersion +
-                    "' and toVersion '" +
-                    toVersion +
-                    "' in the migration history");
+            return MigraMongoStatus
+                .error(
+                    "No migration entry found for fromVersion '" +
+                        fromVersion +
+                        "' and toVersion '" +
+                        toVersion +
+                        "' in the migration history");
         }
         final Optional<MongoMigrationScript> migScriptOpt = scriptLookupService
             .findMongoScripts()
@@ -269,29 +270,36 @@ public class MigraMongo {
                     toVersion.equals(script.getMigrationInfo().getToVersion()))
             .findFirst();
         if ( !migScriptOpt.isPresent()) {
-            return MigraMongoStatus.error(
-                "No migration script found for fromVersion '" + fromVersion + "' and toVersion '" + toVersion + "'");
+            return MigraMongoStatus
+                .error(
+                    "No migration script found for fromVersion '" +
+                        fromVersion +
+                        "' and toVersion '" +
+                        toVersion +
+                        "'");
         }
 
         final MongoMigrationScript mongoMigrationScript = migScriptOpt.get();
         final MigrationRun migrationRun = new MigrationRun();
         try {
             mongoMigrationScript.migrate(database);
-            final MigrationEntry migrationEntryWithRun = migrationHistoryService.addRunToMigrationEntry(
-                migrationEntry,
-                migrationRun.complete(MigrationStatus.OK, "Migration completed correctly"));
+            final MigrationEntry migrationEntryWithRun = migrationHistoryService
+                .addRunToMigrationEntry(
+                    migrationEntry,
+                    migrationRun.complete(MigrationStatus.OK, "Migration completed correctly"));
             return MigraMongoStatus
                 .ok("Re-run of Migration fromVersion " + fromVersion + " toVersion " + toVersion + " run successfully")
                 .addEntry(migrationEntryWithRun);
 
         } catch (Exception e) {
-            logger.error(
-                "Error when re-running migration fromVersion " +
-                    fromVersion +
-                    " toVersion " +
-                    toVersion +
-                    ": " +
-                    e.getMessage());
+            logger
+                .error(
+                    "Error when re-running migration fromVersion " +
+                        fromVersion +
+                        " toVersion " +
+                        toVersion +
+                        ": " +
+                        e.getMessage());
             final MigrationEntry migrationEntryWithRun = migrationHistoryService
                 .addRunToMigrationEntry(migrationEntry, migrationRun.complete(MigrationStatus.ERROR, e.getMessage()));
             return MigraMongoStatus
