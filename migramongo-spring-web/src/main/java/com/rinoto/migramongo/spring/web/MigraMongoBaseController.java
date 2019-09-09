@@ -32,7 +32,6 @@ public class MigraMongoBaseController {
 
     /**
      * Performs the DB Migration in an Asynchronous mode (it will return automatically).
-     * <p>
      * <ul>
      * <li>if there is nothing to migrate, a status with OK will be returned
      * <li>if there are items to migrate, a status with IN_PROGRESS and the items that will be migrated will be returned. Afterwards you will need to call the /status method to check the status.

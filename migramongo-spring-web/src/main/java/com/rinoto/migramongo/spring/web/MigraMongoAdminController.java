@@ -39,7 +39,6 @@ public class MigraMongoAdminController {
      * runs again an entry in the <i>_migramongo</i> collection
      * <p>
      * the entry gets defined by the <code>fromVersion</code> and <code>toVersion</code> parameters
-     * <p>
      * <ul>
      * <li>if the entry does not exist, an error status will be thrown
      * <li>if it exists, it will be re-runned, and the status of the run will be shown

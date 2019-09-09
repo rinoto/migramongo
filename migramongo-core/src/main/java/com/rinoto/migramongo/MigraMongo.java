@@ -44,7 +44,7 @@ public class MigraMongo {
     /**
      * It returns the migrations that would be applied, if the migration would be performed, but it doesn't actually migrate anything
      * 
-     * @return
+     * @return the status of the migration
      */
     public MigraMongoStatus dryRun() {
         try {
