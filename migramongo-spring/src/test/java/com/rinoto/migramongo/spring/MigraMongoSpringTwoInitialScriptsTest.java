@@ -1,5 +1,7 @@
 package com.rinoto.migramongo.spring;
 
+import com.rinoto.migramongo.MigraMongoStatus;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,9 +11,12 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.rinoto.migramongo.MigraMongo;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 /**
  * This config has 2 initial mig scripts - it will fail
- * 
+ *
  * @author ela
  *
  */
@@ -24,9 +29,14 @@ public class MigraMongoSpringTwoInitialScriptsTest {
 	@Autowired
 	private MigraMongo migraMongo;
 
-	@Test(expected = IllegalStateException.class)
+	@Test
 	public void shouldMigrateInitialAndMigScript1() {
-		migraMongo.migrate();
+		// when
+		MigraMongoStatus status = migraMongo.migrate();
+
+		//then
+		assertThat(status.status, is(MigraMongoStatus.MigrationStatus.ERROR));
+		assertThat(status.message, Matchers.startsWith("There cannot be more than one InitialMigrationScript"));
 	}
 
 }
