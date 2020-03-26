@@ -17,7 +17,7 @@ import com.rinoto.migramongo.lookup.ScriptLookupService;
 
 /**
  * Performs the migration of the scripts
- * 
+ *
  * @author rinoto
  */
 public class MigraMongo {
@@ -48,7 +48,7 @@ public class MigraMongo {
 
     /**
      * It returns the migrations that would be applied, if the migration would be performed, but it doesn't actually migrate anything
-     * 
+     *
      * @return the status of the migration
      */
     public MigraMongoStatus dryRun() {
@@ -74,7 +74,7 @@ public class MigraMongo {
      * Performs the migration from the last entry in the DB, until the last available {@link com.rinoto.migramongo.MongoMigrationScript} found.
      * <p>
      * If there are no migrations in the source code, and there is no
-     * 
+     *
      * @return the status
      */
     public MigraMongoStatus migrate() {
@@ -86,8 +86,11 @@ public class MigraMongo {
             final List<MongoMigrationScript> migrationScriptsToApply = findMigrationScriptsToApply();
             return migrate(migrationScriptsToApply);
         } catch (MongoMigrationException e) {
-            logger.error("Exception caught while migrating", e);
+            logger.error("Migration Exception caught while migrating", e);
             return e.getStatus();
+        } catch (Exception e) {
+            logger.error("Unknown Exception caught while migrating", e);
+            return MigraMongoStatus.error(e.getMessage());
         } finally {
             lockService.releaseLock();
         }
@@ -99,7 +102,7 @@ public class MigraMongo {
      * <li>if there is nothing to migrate, a status with OK will be returned
      * <li>if there are items to migrate, a status with IN_PROGRESS and the items that will be migrated will be returned
      * </ul>
-     * 
+     *
      * @return the status of the migration - will always be ok, as the migration runs asynchronously
      */
     public MigraMongoStatus migrateAsync() {
@@ -128,7 +131,7 @@ public class MigraMongo {
      * Gets the status of the applied migrations since the specified version
      * <p>
      * if fromVersion is null, it will get all applied migrations
-     * 
+     *
      * @param fromVersion the version we want to get the status from
      * @return status of the applied migrations since the specified version
      */
@@ -221,7 +224,7 @@ public class MigraMongo {
      * the entry gets defined by the <code>fromVersion</code> and <code>toVersion</code> parameters
      * <p>
      * if the entry does not exist, or it was not in one of the allowed states for repairing, an error status will be thrown
-     * 
+     *
      * @param fromVersion fromVersion
      * @param toVersion toVersion
      * @return status
@@ -383,7 +386,7 @@ public class MigraMongo {
 
     /**
      * Returns the migration entries that have been applied
-     * 
+     *
      * @return the list of migration entries
      */
     public List<MigrationEntry> getMigrationEntries() {

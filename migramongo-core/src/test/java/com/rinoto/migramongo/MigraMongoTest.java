@@ -1,5 +1,7 @@
 package com.rinoto.migramongo;
 
+import org.assertj.core.api.Assertions;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,6 +16,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -380,7 +383,7 @@ public class MigraMongoTest {
         assertThat(status.migrationsApplied, hasSize(0));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldFailIfThereAreMoreThanOneMigrationScriptsToApply() throws Exception {
         // given
         mockLastEntry("1", "1");
@@ -388,8 +391,12 @@ public class MigraMongoTest {
             .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("2", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
 
-        // when - expects IllegalStateException
-        migraMongo.migrate();
+        // when
+        MigraMongoStatus status = migraMongo.migrate();
+
+        //then
+        assertThat(status.status, is(MigrationStatus.ERROR));
+        assertThat(status.message, Matchers.startsWith("There is more than one script with fromVersion 2"));
     }
 
     @Test
