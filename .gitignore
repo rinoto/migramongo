@@ -2,3 +2,9 @@
 /.classpath
 /.project
 /.settings/
+/migramongo-parent.iml
+/migramongo-core/migramongo-core.iml
+/migramongo-reflections/migramongo-reflections.iml
+/migramongo-spring/migramongo-spring.iml
+/migramongo-spring-web/migramongo-spring-web.iml
+/.idea/
