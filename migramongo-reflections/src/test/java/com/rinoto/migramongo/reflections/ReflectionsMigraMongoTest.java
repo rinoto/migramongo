@@ -3,11 +3,11 @@ package com.rinoto.migramongo.reflections;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.dao.MongoLockService;
+import org.junit.jupiter.api.Test;
 
 public class ReflectionsMigraMongoTest {
 

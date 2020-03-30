@@ -6,16 +6,16 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collection;
-
-import org.junit.Test;
 
 import com.rinoto.migramongo.InitialMongoMigrationScript;
 import com.rinoto.migramongo.MongoMigrationScript;
 import com.rinoto.migramongo.reflections.lookup.classes.InitialMongoScriptForTesting;
 import com.rinoto.migramongo.reflections.lookup.multiple.InitialMongoScriptForTesting1;
 import com.rinoto.migramongo.reflections.lookup.wrongclasses.IllegalInitialMigrationScript;
+import org.junit.jupiter.api.Test;
 
 public class ReflectionsScriptLookupTest {
 
@@ -52,24 +52,24 @@ public class ReflectionsScriptLookupTest {
                 hasProperty("migrationInfo", hasProperty("fromVersion", is("3")))));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldFailIfClassIsAbstract() {
         //given
         final ReflectionsScriptLookupService lookup = new ReflectionsScriptLookupService(
             IllegalInitialMigrationScript.class.getPackage().getName());
 
         //when - expect exception
-        lookup.findInitialScript();
+        assertThrows(IllegalStateException.class, () -> lookup.findInitialScript());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldFailIfItFindsMoreThanOneImplementationOfInitialScripts() {
         //given
         final ReflectionsScriptLookupService lookup = new ReflectionsScriptLookupService(
             InitialMongoScriptForTesting1.class.getPackage().getName());
 
         //when - expect exception
-        lookup.findInitialScript();
+        assertThrows(IllegalStateException.class, () -> lookup.findInitialScript());
     }
 
     @Test

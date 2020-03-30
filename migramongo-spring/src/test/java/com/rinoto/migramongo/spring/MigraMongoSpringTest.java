@@ -1,23 +1,22 @@
 package com.rinoto.migramongo.spring;
 
+import com.rinoto.migramongo.MigraMongo;
+import com.rinoto.migramongo.MigraMongoStatus;
+import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.rinoto.migramongo.MigraMongo;
-import com.rinoto.migramongo.MigraMongoStatus;
-import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
-
 @ContextConfiguration(classes = { MigraMongoSpringTestConfig.class, InitialMigScript.class, MigScript1.class })
 @DirtiesContext
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 public class MigraMongoSpringTest {
 
 	@Autowired

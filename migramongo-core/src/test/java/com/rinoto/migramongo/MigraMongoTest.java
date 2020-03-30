@@ -17,22 +17,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
 import com.rinoto.migramongo.dao.LockService;
 import com.rinoto.migramongo.dao.MigrationHistoryService;
 import com.rinoto.migramongo.lookup.ScriptLookupService;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class MigraMongoTest {
 
     @InjectMocks
@@ -46,32 +46,32 @@ public class MigraMongoTest {
     @Mock
     MongoDatabase mongoDatabase;
 
-    @Before
+    @BeforeEach
     public void setup() {
         // mocking
-        when(migEntryService.insertMigrationStatusInProgress(any(MigrationInfo.class))).thenAnswer(i -> {
+        lenient().when(migEntryService.insertMigrationStatusInProgress(any(MigrationInfo.class))).thenAnswer(i -> {
             final MigrationInfo migInfo = (MigrationInfo) i.getArguments()[0];
             final MigrationEntry e = createMigrationEntry(migInfo.getFromVersion(), migInfo.getToVersion(), null);
             return e;
         });
-        when(migEntryService.insertMigrationStatusSkipped(any(MigrationInfo.class))).thenAnswer(i -> {
+        lenient().when(migEntryService.insertMigrationStatusSkipped(any(MigrationInfo.class))).thenAnswer(i -> {
             final MigrationInfo migInfo = (MigrationInfo) i.getArguments()[0];
             final MigrationEntry e = createMigrationEntry(migInfo.getFromVersion(), migInfo.getToVersion(), null);
             return e;
         });
-        when(migEntryService.setMigrationStatusToFinished(any(MigrationEntry.class))).thenAnswer(i -> {
+        lenient().when(migEntryService.setMigrationStatusToFinished(any(MigrationEntry.class))).thenAnswer(i -> {
             final MigrationEntry entry = (MigrationEntry) i.getArguments()[0];
             entry.setStatus(MigrationStatus.OK);
             return entry;
         });
-        when(migEntryService.setMigrationStatusToFailed(any(MigrationEntry.class), any(Exception.class)))
-            .thenAnswer(i -> {
-                final MigrationEntry entry = (MigrationEntry) i.getArguments()[0];
-                entry.setStatus(MigrationStatus.ERROR);
-                entry.setStatusMessage(((Exception) i.getArguments()[1]).getMessage());
-                return entry;
-            });
-        when(lockService.acquireLock()).thenReturn(true);
+        lenient().when(migEntryService.setMigrationStatusToFailed(any(MigrationEntry.class), any(Exception.class)))
+                .thenAnswer(i -> {
+                    final MigrationEntry entry = (MigrationEntry) i.getArguments()[0];
+                    entry.setStatus(MigrationStatus.ERROR);
+                    entry.setStatusMessage(((Exception) i.getArguments()[1]).getMessage());
+                    return entry;
+                });
+        lenient().when(lockService.acquireLock()).thenReturn(true);
     }
 
     @Test
@@ -160,7 +160,7 @@ public class MigraMongoTest {
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
         final List<MongoMigrationScript> migrationScripts = Arrays
-            .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("8", "9"));
+                .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("8", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -180,12 +180,12 @@ public class MigraMongoTest {
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
         final List<MongoMigrationScript> migrationScripts = Arrays
-            .asList(
-                mockMongoScript("1", "2"),
-                mockMongoScript("2", "8"),
-                mockMongoScript("A", "B"),
-                mockMongoScript("B", "C"),
-                mockMongoScript("8", "9"));
+                .asList(
+                        mockMongoScript("1", "2"),
+                        mockMongoScript("2", "8"),
+                        mockMongoScript("A", "B"),
+                        mockMongoScript("B", "C"),
+                        mockMongoScript("8", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -228,7 +228,7 @@ public class MigraMongoTest {
         mockLastEntry("1", "1");
         // - mig scripts provided
         final List<MongoMigrationScript> migrationScripts = Arrays
-            .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("8", "9"));
+                .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("8", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -247,10 +247,10 @@ public class MigraMongoTest {
         mockLastEntry("1", "1");
         // - mig scripts provided
         final List<MongoMigrationScript> migrationScripts = Arrays
-            .asList(
-                mockMongoScript("1", "2"),
-                mockMongoScript("2", "8", new RuntimeException("script failing")),
-                mockMongoScript("8", "9"));
+                .asList(
+                        mockMongoScript("1", "2"),
+                        mockMongoScript("2", "8", new RuntimeException("script failing")),
+                        mockMongoScript("8", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -258,11 +258,11 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.ERROR));
         assertThat(status.migrationsApplied, hasSize(2));
         assertThat(
-            status.message,
-            allOf(
-                containsString("fromVersion '2'"),
-                containsString("toVersion '8'"),
-                containsString("script failing")));
+                status.message,
+                allOf(
+                        containsString("fromVersion '2'"),
+                        containsString("toVersion '8'"),
+                        containsString("script failing")));
         verify(migrationScripts.get(0)).migrate(mongoDatabase);
         verify(migrationScripts.get(1)).migrate(mongoDatabase);
         verify(migrationScripts.get(2), never()).migrate(mongoDatabase);
@@ -280,11 +280,11 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.ERROR));
         assertThat(status.migrationsApplied, hasSize(0));
         assertThat(
-            status.message,
-            allOf(
-                containsString("Last Migration is in status ERROR"),
-                containsString("fromVersion=1"),
-                containsString("toVersion=1")));
+                status.message,
+                allOf(
+                        containsString("Last Migration is in status ERROR"),
+                        containsString("fromVersion=1"),
+                        containsString("toVersion=1")));
         verify(lookupService, times(0)).findMongoScripts();
     }
 
@@ -295,11 +295,11 @@ public class MigraMongoTest {
         mockLastEntry("4", "5");
         // - mig scripts provided
         final List<MongoMigrationScript> migrationScripts = Arrays
-            .asList(
-                mockMongoScript("1", "2"),
-                mockMongoScript("2", "8"),
-                mockMongoScript("5", "7"),
-                mockMongoScript("7", "8"));
+                .asList(
+                        mockMongoScript("1", "2"),
+                        mockMongoScript("2", "8"),
+                        mockMongoScript("5", "7"),
+                        mockMongoScript("7", "8"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -307,15 +307,15 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(status.migrationsApplied, hasSize(2));
         migrationScripts
-            .stream()
-            .filter(ms -> Integer.valueOf(ms.getMigrationInfo().getFromVersion()) >= 5)
-            .forEach(ms -> {
-                try {
-                    verify(ms).migrate(mongoDatabase);
-                } catch (Exception e) {
-                    throw new RuntimeException("Exception while migrating", e);
-                }
-            });
+                .stream()
+                .filter(ms -> Integer.valueOf(ms.getMigrationInfo().getFromVersion()) >= 5)
+                .forEach(ms -> {
+                    try {
+                        verify(ms).migrate(mongoDatabase);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Exception while migrating", e);
+                    }
+                });
 
     }
 
@@ -352,8 +352,8 @@ public class MigraMongoTest {
         // then
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(
-            status.message,
-            containsString("changed from '" + MigrationStatus.ERROR + "' to '" + MigrationStatus.OK + "'"));
+                status.message,
+                containsString("changed from '" + MigrationStatus.ERROR + "' to '" + MigrationStatus.OK + "'"));
         assertThat(status.migrationsApplied, hasSize(1));
     }
 
@@ -366,8 +366,8 @@ public class MigraMongoTest {
         // then
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(
-            status.message,
-            containsString("changed from '" + MigrationStatus.IN_PROGRESS + "' to '" + MigrationStatus.OK + "'"));
+                status.message,
+                containsString("changed from '" + MigrationStatus.IN_PROGRESS + "' to '" + MigrationStatus.OK + "'"));
         assertThat(status.migrationsApplied, hasSize(1));
     }
 
@@ -388,7 +388,7 @@ public class MigraMongoTest {
         // given
         mockLastEntry("1", "1");
         final List<MongoMigrationScript> migrationScripts = Arrays
-            .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("2", "9"));
+                .asList(mockMongoScript("1", "2"), mockMongoScript("2", "8"), mockMongoScript("2", "9"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
 
         // when
@@ -403,11 +403,11 @@ public class MigraMongoTest {
     public void shouldReturnAppliedEntries() throws Exception {
         // given
         when(migEntryService.getAllMigrationsApplied())
-            .thenReturn(
-                Arrays
-                    .asList(
-                        createMigrationEntry("1.0", "2.0", MigrationStatus.OK),
-                        createMigrationEntry("2.0", "3.0", MigrationStatus.OK)));
+                .thenReturn(
+                        Arrays
+                                .asList(
+                                        createMigrationEntry("1.0", "2.0", MigrationStatus.OK),
+                                        createMigrationEntry("2.0", "3.0", MigrationStatus.OK)));
         // when
         final List<MigrationEntry> migrationEntries = migraMongo.getMigrationEntries();
         // then
@@ -458,7 +458,7 @@ public class MigraMongoTest {
     public void shouldDeliverOkStatusWhenEverythingOk() throws Exception {
         // given
         when(migEntryService.findMigrations("1"))
-            .thenReturn(Arrays.asList(createMigrationEntry("1", "2", MigrationStatus.OK)));
+                .thenReturn(Arrays.asList(createMigrationEntry("1", "2", MigrationStatus.OK)));
         // when
         final MigraMongoStatus status = migraMongo.status("1");
         // then
@@ -470,12 +470,12 @@ public class MigraMongoTest {
     public void shouldDeliverInProgressStatusWhenAtLeastOneEntryIsInProgress() throws Exception {
         // given
         when(migEntryService.findMigrations("1"))
-            .thenReturn(
-                Arrays
-                    .asList(
-                        createMigrationEntry("1", "2", MigrationStatus.OK),
-                        createMigrationEntry("1", "2", MigrationStatus.IN_PROGRESS),
-                        createMigrationEntry("1", "2", MigrationStatus.OK)));
+                .thenReturn(
+                        Arrays
+                                .asList(
+                                        createMigrationEntry("1", "2", MigrationStatus.OK),
+                                        createMigrationEntry("1", "2", MigrationStatus.IN_PROGRESS),
+                                        createMigrationEntry("1", "2", MigrationStatus.OK)));
         // when
         final MigraMongoStatus status = migraMongo.status("1");
         // then
@@ -487,12 +487,12 @@ public class MigraMongoTest {
     public void shouldDeliverErrorStatusWhenAtLeastOneEntryIsInProgress() throws Exception {
         // given
         when(migEntryService.findMigrations("1"))
-            .thenReturn(
-                Arrays
-                    .asList(
-                        createMigrationEntry("1", "2", MigrationStatus.OK),
-                        createMigrationEntry("1", "2", MigrationStatus.ERROR),
-                        createMigrationEntry("1", "2", MigrationStatus.OK)));
+                .thenReturn(
+                        Arrays
+                                .asList(
+                                        createMigrationEntry("1", "2", MigrationStatus.OK),
+                                        createMigrationEntry("1", "2", MigrationStatus.ERROR),
+                                        createMigrationEntry("1", "2", MigrationStatus.OK)));
         // when
         final MigraMongoStatus status = migraMongo.status("1");
         // then
@@ -543,7 +543,7 @@ public class MigraMongoTest {
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
         final List<MongoMigrationScript> migrationScripts = Arrays
-            .asList(mockMongoScript("1", "2", true), mockMongoScript("2", "3", false), mockMongoScript("3", "4", true));
+                .asList(mockMongoScript("1", "2", true), mockMongoScript("2", "3", false), mockMongoScript("3", "4", true));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
 
         // when
@@ -554,8 +554,8 @@ public class MigraMongoTest {
         assertThat(status.migrationsApplied, hasSize(migrationScripts.size() + 1));
         verify(mockInitialScript).migrate(mongoDatabase);
         final Map<Boolean, List<MongoMigrationScript>> scriptsGrouppedByIncludedInInitial = migrationScripts
-            .stream()
-            .collect(Collectors.groupingBy(ms -> ms.includedInInitialMigrationScript()));
+                .stream()
+                .collect(Collectors.groupingBy(ms -> ms.includedInInitialMigrationScript()));
         //included in initial = true
         for (MongoMigrationScript scriptIncludedInInitial : scriptsGrouppedByIncludedInInitial.get(true)) {
             verify(scriptIncludedInInitial, times(0)).migrate(mongoDatabase);
@@ -572,7 +572,7 @@ public class MigraMongoTest {
         // given
         mockLastMigrationApplied("0", "1");
         final List<MongoMigrationScript> migrationScripts = Arrays
-            .asList(mockMongoScript("1", "2", true), mockMongoScript("2", "3", false), mockMongoScript("3", "4", true));
+                .asList(mockMongoScript("1", "2"), mockMongoScript("2", "3"), mockMongoScript("3", "4"));
         when(lookupService.findMongoScripts()).thenReturn(migrationScripts);
 
         // when
@@ -608,11 +608,9 @@ public class MigraMongoTest {
     }
 
     @Test
-    @Ignore("mockito is complaining because of UnnecessaryStubbingException")
     public void shouldMigrateInitialScriptEvenIfIncludedInInitialIsFalse() throws Exception {
         // given
         final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
-        when(mockInitialScript.includedInInitialMigrationScript()).thenReturn(false);
         when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
         // when
         final MigraMongoStatus status = migraMongo.migrate();
@@ -635,9 +633,8 @@ public class MigraMongoTest {
     @Test
     public void shouldNotRerunIfScriptDoesNotExist() throws Exception {
         // given
-        mockEntry("1", "2", MigrationStatus.OK);
         mockEntry("2", "3", MigrationStatus.OK);
-        final List<MongoMigrationScript> mongoScripts = Arrays.asList(mockMongoScript("1", "2", true));
+        final List<MongoMigrationScript> mongoScripts = Arrays.asList(mockMongoScript("1", "2", (Boolean) null));
         when(lookupService.findMongoScripts()).thenReturn(mongoScripts);
 
         // when
@@ -653,7 +650,7 @@ public class MigraMongoTest {
     public void shouldRerunIfEntryAndScriptExist() throws Exception {
         // given
         final MigrationEntry entry = mockEntry("1", "2", MigrationStatus.OK);
-        final MongoMigrationScript mongoScript = mockMongoScript("1", "2", true);
+        final MongoMigrationScript mongoScript = mockMongoScript("1", "2", (Boolean) null);
         final List<MongoMigrationScript> mongoScripts = Arrays.asList(mongoScript);
         when(lookupService.findMongoScripts()).thenReturn(mongoScripts);
         when(migEntryService.addRunToMigrationEntry(eq(entry), any(MigrationRun.class))).thenAnswer(i -> {
@@ -668,12 +665,12 @@ public class MigraMongoTest {
         // then
         assertThat(status.status, is(MigrationStatus.OK));
         assertThat(
-            status.message,
-            allOf(
-                containsString("Re-run of Migration"),
-                containsString("fromVersion 1"),
-                containsString("toVersion 2"),
-                containsString("successfully")));
+                status.message,
+                allOf(
+                        containsString("Re-run of Migration"),
+                        containsString("fromVersion 1"),
+                        containsString("toVersion 2"),
+                        containsString("successfully")));
         assertThat(status.migrationsApplied, hasSize(1));
         final MigrationEntry migrationApplied = status.migrationsApplied.get(0);
         assertThat(migrationApplied.getReruns(), hasSize(1));
@@ -702,11 +699,11 @@ public class MigraMongoTest {
         // then
         assertThat(status.status, is(MigrationStatus.ERROR));
         assertThat(
-            status.message,
-            allOf(
-                containsString("Error when re-running migration"),
-                containsString("fromVersion 1"),
-                containsString("toVersion 2")));
+                status.message,
+                allOf(
+                        containsString("Error when re-running migration"),
+                        containsString("fromVersion 1"),
+                        containsString("toVersion 2")));
         assertThat(status.migrationsApplied, hasSize(1));
         final MigrationEntry migrationApplied = status.migrationsApplied.get(0);
         assertThat(migrationApplied.getReruns(), hasSize(1));
@@ -731,13 +728,15 @@ public class MigraMongoTest {
     }
 
     private MongoMigrationScript mockMongoScript(String from, String to) {
-        return mockMongoScript(from, to, false);
+        return mockMongoScript(from, to, (Boolean) null);
     }
 
-    private MongoMigrationScript mockMongoScript(String from, String to, boolean includedInInitial) {
+    private MongoMigrationScript mockMongoScript(String from, String to, Boolean includedInInitial) {
         final MongoMigrationScript script = mock(MongoMigrationScript.class);
         when(script.getMigrationInfo()).thenReturn(new MigrationInfo(from, to));
-        when(script.includedInInitialMigrationScript()).thenReturn(includedInInitial);
+        if (includedInInitial != null) {
+            when(script.includedInInitialMigrationScript()).thenReturn(includedInInitial);
+        }
         return script;
     }
 
@@ -749,8 +748,8 @@ public class MigraMongoTest {
 
     private InitialMongoMigrationScript mockInitialScript(String version) {
         final InitialMongoMigrationScript script = mock(
-            InitialMongoMigrationScript.class,
-            withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
+                InitialMongoMigrationScript.class,
+                withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
         when(script.getMigrationInfo()).thenReturn(new InitialMigrationInfo(version));
         return script;
     }
