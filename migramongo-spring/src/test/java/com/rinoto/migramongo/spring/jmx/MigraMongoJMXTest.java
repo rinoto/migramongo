@@ -11,11 +11,10 @@ import java.util.Date;
 import java.util.List;
 
 import org.bson.types.ObjectId;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -23,8 +22,9 @@ import com.rinoto.migramongo.MigraMongo;
 import com.rinoto.migramongo.MigraMongoStatus;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
 import com.rinoto.migramongo.MigrationEntry;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class MigraMongoJMXTest {
 
     @InjectMocks

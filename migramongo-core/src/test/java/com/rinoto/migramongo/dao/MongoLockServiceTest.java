@@ -5,19 +5,20 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.EmbeddedMongo;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MongoLockServiceTest {
 
@@ -26,17 +27,17 @@ public class MongoLockServiceTest {
     private MongoLockService lockService;
     private MongoDatabase database;
 
-    @BeforeClass
+    @BeforeAll
     public static void startMongo() throws Exception {
         mongo.start();
     }
 
-    @AfterClass
+    @AfterAll
     public static void stopMongo() {
         mongo.stop();
     }
 
-    @Before
+    @BeforeEach
     public void init() {
         database = mongo.getClient().getDatabase("migramongotest");
         database.getCollection(MongoLockService.MIGRAMONGO_LOCK_COLLECTION).drop();
@@ -73,9 +74,9 @@ public class MongoLockServiceTest {
         final AtomicInteger locksRejected = new AtomicInteger(0);
 
         // when
-        for (int i = 0; i < numberOfWorkers; i++ ) {
+        for (int i = 0; i < numberOfWorkers; i++) {
             executor.submit(
-                () -> lockService.acquireLock() ? locksAcquired.incrementAndGet() : locksRejected.incrementAndGet());
+                    () -> lockService.acquireLock() ? locksAcquired.incrementAndGet() : locksRejected.incrementAndGet());
         }
         executor.shutdown();
         executor.awaitTermination(5, TimeUnit.SECONDS);
@@ -95,12 +96,12 @@ public class MongoLockServiceTest {
         final AtomicInteger locksRejected = new AtomicInteger(0);
 
         // when
-        for (int i = 0; i < numberOfWorkers; i++ ) {
+        for (int i = 0; i < numberOfWorkers; i++) {
             executor.submit(() -> {
                 final LockService thisLockService = new MongoLockService(database);
                 return thisLockService.acquireLock()
-                    ? locksAcquired.incrementAndGet()
-                    : locksRejected.incrementAndGet();
+                        ? locksAcquired.incrementAndGet()
+                        : locksRejected.incrementAndGet();
             });
         }
         executor.shutdown();
@@ -150,8 +151,8 @@ public class MongoLockServiceTest {
         assertThat(lockService.getLockInformation().getLastLockDate(), not(nullValue()));
         assertThat(lockService.getLockInformation().getLastReleaseDate(), not(nullValue()));
         assertThat(
-            lockService.getLockInformation().getLastLockDate(),
-            lessThan(lockService.getLockInformation().getLastReleaseDate()));
+                lockService.getLockInformation().getLastLockDate(),
+                lessThan(lockService.getLockInformation().getLastReleaseDate()));
     }
 
     @Test
@@ -177,13 +178,13 @@ public class MongoLockServiceTest {
         assertThat(lockService.getLockInformation().getLastReleaseDate(), nullValue());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void shouldThrowIllegalStateExceptionIfLockServiceIsNotInitialized() {
         //given lock collection doesn't exist
         database.getCollection(MongoLockService.MIGRAMONGO_LOCK_COLLECTION).drop();
 
         //when - expect exception
-        lockService.acquireLock();
+        assertThrows(IllegalStateException.class, () -> lockService.acquireLock());
     }
 
 }

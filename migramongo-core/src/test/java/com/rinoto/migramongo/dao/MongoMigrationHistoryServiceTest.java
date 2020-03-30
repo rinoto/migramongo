@@ -11,10 +11,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import com.rinoto.migramongo.EmbeddedMongo;
 import com.rinoto.migramongo.InitialMigrationInfo;
@@ -22,6 +18,10 @@ import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
 import com.rinoto.migramongo.MigrationEntry;
 import com.rinoto.migramongo.MigrationInfo;
 import com.rinoto.migramongo.MigrationRun;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MongoMigrationHistoryServiceTest {
 
@@ -29,17 +29,17 @@ public class MongoMigrationHistoryServiceTest {
 
     MongoMigrationHistoryService migrationHistoryService;
 
-    @BeforeClass
+    @BeforeAll
     public static void startMongo() throws Exception {
         mongo.start();
     }
 
-    @AfterClass
+    @AfterAll
     public static void stopMongo() {
         mongo.stop();
     }
 
-    @Before
+    @BeforeEach
     public void clearMigrations() {
         migrationHistoryService = new MongoMigrationHistoryService(mongo.getClient().getDatabase("migramongotest"));
         migrationHistoryService.getMigramongoCollection().drop();
