@@ -43,7 +43,7 @@
 		<junit.version>5.6.1</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<logback.verion>1.2.3</logback.verion>
-		<embedmongo.version>2.2.0</embedmongo.version>
+		<embedmongo.version>3.0.0</embedmongo.version>
 		<reflections.version>0.9.11</reflections.version>
 	</properties>
 
