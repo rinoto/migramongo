@@ -5,7 +5,7 @@ import com.mongodb.MongoClient;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
+import de.flapdoodle.embed.mongo.config.MongodConfig;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.process.runtime.Network;
@@ -17,7 +17,7 @@ public class EmbeddedMongo {
 
     public void start() throws Exception {
         final MongodStarter starter = MongodStarter.getDefaultInstance();
-        executable = starter.prepare(new MongodConfigBuilder()
+        executable = starter.prepare(MongodConfig.builder()
             .version(Version.Main.PRODUCTION)
             .net(new Net(12345, Network.localhostIsIPv6()))
             .build());
