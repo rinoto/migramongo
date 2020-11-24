@@ -21,7 +21,7 @@ public class MongoLockService implements LockService {
 
     private void initLockCollection() {
         //if the table already exists, we do not need to create it anymore
-        if (getLockCollection().count() > 0) {
+        if (getLockCollection().countDocuments() > 0) {
             return;
         }
         // assuring that the index exists
@@ -38,7 +38,7 @@ public class MongoLockService implements LockService {
 
     @Override
     public boolean acquireLock() {
-        if (getLockCollection().count() == 0) {
+        if (getLockCollection().countDocuments() == 0) {
             throw new IllegalStateException(
                 "Cannot acquire lock because lock table has not been initialized. Initialize MongoLockService properly, or call destroyLock");
         }

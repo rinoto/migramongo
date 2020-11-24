@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.github.rinoto.mongo</groupId>
 		<artifactId>migramongo-parent</artifactId>
-		<version>1.3-SNAPSHOT</version>
+		<version>1.4</version>
 	</parent>
 	<artifactId>migramongo-spring</artifactId>
 	<packaging>jar</packaging>
