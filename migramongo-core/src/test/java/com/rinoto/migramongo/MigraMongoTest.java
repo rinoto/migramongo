@@ -434,7 +434,7 @@ public class MigraMongoTest {
     }
 
     @Test
-    public void shouldExecuteAsynchFunction() throws Exception {
+    public void shouldExecuteAsynchInitializerFunction() throws Exception {
         // given
         final CountDownLatch asyncFunctionLatch = new CountDownLatch(1);
         migraMongo.setAsyncInitializerFunction(() -> asyncFunctionLatch.countDown());
@@ -451,6 +451,23 @@ public class MigraMongoTest {
 
         // then
         latch.await(2, TimeUnit.SECONDS);
+        assertThat(asyncFunctionLatch.getCount(), is(0L));
+    }
+
+    @Test
+    public void shouldExecuteAsynchDestroyerFunction() throws Exception {
+        // given
+        final CountDownLatch asyncFunctionLatch = new CountDownLatch(1);
+        migraMongo.setAsyncDestroyerFunction(() -> asyncFunctionLatch.countDown());
+
+        final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
+        doAnswer(i -> null).when(mockInitialScript).migrate(Mockito.any(MongoDatabase.class));
+        when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
+        // when
+        migraMongo.migrateAsync();
+
+        // then
+        asyncFunctionLatch.await(2, TimeUnit.SECONDS);
         assertThat(asyncFunctionLatch.getCount(), is(0L));
     }
 

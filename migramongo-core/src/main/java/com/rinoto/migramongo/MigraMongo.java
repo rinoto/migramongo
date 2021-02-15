@@ -30,6 +30,7 @@ public class MigraMongo {
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private MongoDatabase database;
     private Runnable asyncInitializerFuntion;
+    private Runnable asyncDestroyerFuntion;
 
     public MigraMongo(
             MongoDatabase database,
@@ -44,6 +45,10 @@ public class MigraMongo {
 
     public void setAsyncInitializerFunction(Runnable function) {
         this.asyncInitializerFuntion = function;
+    }
+
+    public void setAsyncDestroyerFunction(Runnable function) {
+        this.asyncDestroyerFuntion = function;
     }
 
     /**
@@ -120,6 +125,11 @@ public class MigraMongo {
                 logger.debug("Async initializer function executed");
             }
             final MigraMongoStatus status = migrate();
+            if (asyncDestroyerFuntion != null) {
+                logger.debug("Executing async destroyer function");
+                asyncDestroyerFuntion.run();
+                logger.debug("Async destroyer function executed");
+            }
             logger.debug("Migration in a separate thread returned status {}", status);
         });
         // return IN_PROGRESS status
