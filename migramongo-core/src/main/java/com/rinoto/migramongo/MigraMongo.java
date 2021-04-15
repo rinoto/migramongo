@@ -354,6 +354,7 @@ public class MigraMongo {
             migrationScript.migrate(database);
             return migrationHistoryService.setMigrationStatusToFinished(migrationEntry);
         } catch (Exception e) {
+            logger.error("Migration Script '" + migrationEntry + "' failed with Exception", e);
             return migrationHistoryService.setMigrationStatusToFailed(migrationEntry, e);
         }
     }
