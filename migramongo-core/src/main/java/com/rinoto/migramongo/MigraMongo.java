@@ -259,7 +259,7 @@ public class MigraMongo {
         }
         final MigrationStatus previousStatus = migrationEntry.getStatus();
         final MigrationEntry correctedMigrationEntry = migrationHistoryService
-            .setMigrationStatusToFinished(migrationEntry);
+            .setMigrationStatusToManuallyRepaired(migrationEntry);
         final MigraMongoStatus status = MigraMongoStatus
             .ok(
                 "Status of migrationEntry " +
