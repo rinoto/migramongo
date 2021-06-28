@@ -1,7 +1,7 @@
 # migramongo
 
 [![Maven Version](https://maven-badges.herokuapp.com/maven-central/com.github.rinoto.mongo/migramongo-core/badge.svg)](http://search.maven.org/#search|ga|1|a%3A%22migramongo-core%22)
-[![Build Status](https://api.travis-ci.com/rinoto/migramongo.svg?branch=master)](https://travis-ci.org/rinoto/migramongo) 
+[![Build Status](https://api.travis-ci.com/rinoto/migramongo.svg?branch=master)](https://travis-ci.com/github/rinoto/migramongo) 
 [![Coverage Status](https://coveralls.io/repos/github/rinoto/migramongo/badge.svg?branch=master)](https://coveralls.io/github/rinoto/migramongo?branch=master)
 [![Vulnerabilities](https://snyk.io/test/github/rinoto/migramongo/badge.svg)](https://snyk.io/test/github/rinoto/migramongo)
 
