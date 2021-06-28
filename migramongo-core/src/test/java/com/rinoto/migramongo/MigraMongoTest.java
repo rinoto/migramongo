@@ -341,12 +341,13 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.ERROR));
         assertThat(status.message, containsString("No migration entry found"));
         assertThat(status.migrationsApplied, hasSize(0));
+        verify(migEntryService, never()).setMigrationStatusToManuallyRepaired(any());
     }
 
     @Test
     public void shouldRepairEntryInErrorStatus() throws Exception {
         // given
-        mockEntry("4", "5", MigrationStatus.ERROR);
+        MigrationEntry migrationEntry = mockEntry("4", "5", MigrationStatus.ERROR);
         // when
         final MigraMongoStatus status = migraMongo.repair("4", "5");
         // then
@@ -355,12 +356,13 @@ public class MigraMongoTest {
                 status.message,
                 containsString("changed from '" + MigrationStatus.ERROR + "' to '" + MigrationStatus.OK + "'"));
         assertThat(status.migrationsApplied, hasSize(1));
+        verify(migEntryService, times(1)).setMigrationStatusToManuallyRepaired(migrationEntry);
     }
 
     @Test
     public void shouldRepairEntryInInProgressStatus() throws Exception {
         // given
-        mockEntry("4", "5", MigrationStatus.IN_PROGRESS);
+        MigrationEntry migrationEntry = mockEntry("4", "5", MigrationStatus.IN_PROGRESS);
         // when
         final MigraMongoStatus status = migraMongo.repair("4", "5");
         // then
@@ -369,6 +371,7 @@ public class MigraMongoTest {
                 status.message,
                 containsString("changed from '" + MigrationStatus.IN_PROGRESS + "' to '" + MigrationStatus.OK + "'"));
         assertThat(status.migrationsApplied, hasSize(1));
+        verify(migEntryService, times(1)).setMigrationStatusToManuallyRepaired(migrationEntry);
     }
 
     @Test
@@ -381,6 +384,7 @@ public class MigraMongoTest {
         assertThat(status.status, is(MigrationStatus.ERROR));
         assertThat(status.message, containsString("has already status '" + MigrationStatus.OK + "'"));
         assertThat(status.migrationsApplied, hasSize(0));
+        verify(migEntryService, never()).setMigrationStatusToManuallyRepaired(any());
     }
 
     @Test
