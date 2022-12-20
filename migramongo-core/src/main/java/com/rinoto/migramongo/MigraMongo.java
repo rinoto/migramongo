@@ -169,13 +169,17 @@ public class MigraMongo {
     }
 
     private MigraMongoStatus migrate(List<MongoMigrationScript> migrationScriptsToApply) {
-        logger.debug("Running migration on {} scripts", migrationScriptsToApply.size());
+        logger.info("Running migration on {} scripts", migrationScriptsToApply.size());
         final MigraMongoStatus status = MigraMongoStatus.ok();
         boolean isInitialMigration = migrationScriptsToApply
             .stream()
             .filter(ms -> InitialMongoMigrationScript.class.isInstance(ms))
             .findFirst()
             .isPresent();
+        if (isInitialMigration) {
+            logger.info("There is not migration applied yet, therefore this is the initial migration.");
+        }
+
         for (MongoMigrationScript migScriptToApply : migrationScriptsToApply) {
             final MigrationEntry migEntry = executeMigrationScript(migScriptToApply, isInitialMigration);
             status.addEntry(migEntry);
@@ -190,7 +194,10 @@ public class MigraMongo {
                 return status;
             }
         }
-        logger.debug("Migration performed with status {}", status);
+        logger.info("{} migrations successfully applied with status {} and message '{}'",
+                status.migrationsApplied.size(),
+                status.status,
+                status.message);
         return status;
     }
 
@@ -230,6 +237,7 @@ public class MigraMongo {
             fromVersion = lastMigrationApplied.getToVersion();
         }
         migrationScriptsToApply.addAll(getMigrationScriptsToApply(fromVersion));
+        logger.info("Found {} migrations scripts to apply.", migrationScriptsToApply.size());
         return migrationScriptsToApply;
     }
 
@@ -354,6 +362,9 @@ public class MigraMongo {
             isInitialMigration &&
             includedInInitialMigrationScript) {
             //special case when we are in the initial migration, and this script is already included in it
+            logger.debug("Script from {} to {} will be skipped, because it is included in the initial migration.",
+                    migrationScript.getMigrationInfo().getFromVersion(),
+                    migrationScript.getMigrationInfo().getToVersion());
             return migrationHistoryService.insertMigrationStatusSkipped(migrationScript.getMigrationInfo());
         }
 
