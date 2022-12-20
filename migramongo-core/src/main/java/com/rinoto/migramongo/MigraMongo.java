@@ -31,6 +31,7 @@ public class MigraMongo {
     private MongoDatabase database;
     private Runnable asyncInitializerFuntion;
     private Runnable asyncDestroyerFuntion;
+    private boolean includedInInitialMigration = true;
 
     public MigraMongo(
             MongoDatabase database,
@@ -41,6 +42,10 @@ public class MigraMongo {
         this.migrationHistoryService = migrationEntryService;
         this.lockService = lockService;
         this.scriptLookupService = scriptLookupService;
+    }
+
+    public void setIncludedInInitialMigration(boolean includedInInitialMigration) {
+        this.includedInInitialMigration = includedInInitialMigration;
     }
 
     public void setAsyncInitializerFunction(Runnable function) {
@@ -341,9 +346,13 @@ public class MigraMongo {
     }
 
     private MigrationEntry executeMigrationScript(MongoMigrationScript migrationScript, boolean isInitialMigration) {
+        final boolean includedInInitialMigrationScript = Optional
+                .ofNullable(migrationScript.includedInInitialMigrationScript())
+                .orElse(this.includedInInitialMigration);
+
         if ( !InitialMongoMigrationScript.class.isInstance(migrationScript) &&
             isInitialMigration &&
-            migrationScript.includedInInitialMigrationScript()) {
+            includedInInitialMigrationScript) {
             //special case when we are in the initial migration, and this script is already included in it
             return migrationHistoryService.insertMigrationStatusSkipped(migrationScript.getMigrationInfo());
         }

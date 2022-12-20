@@ -1,9 +1,8 @@
 package com.rinoto.migramongo;
 
-import org.assertj.core.api.Assertions;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -18,7 +17,6 @@ import java.util.stream.Collectors;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -152,6 +150,25 @@ public class MigraMongoTest {
             verify(ms).migrate(mongoDatabase);
         }
 
+    }
+
+    @Test
+    public void shouldApplyAllMigrationWithIncludedPropertySetToFalseByDefault() throws Exception {
+        // given
+        final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
+        migraMongo.setIncludedInInitialMigration(false);
+        when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
+        final MongoMigrationScript migrationScript = mockMongoScript("1", "2");
+        when(lookupService.findMongoScripts()).thenReturn(List.of(migrationScript));
+        // when
+        final MigraMongoStatus status = migraMongo.migrate();
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        assertThat(status.migrationsApplied, hasSize(2));
+        assertThat(status.migrationsApplied.get(0).isSkipped(), is(false));
+        assertThat(status.migrationsApplied.get(1).isSkipped(), is(false));
+        verify(mockInitialScript).migrate(mongoDatabase);
+        verify(migrationScript).migrate(mongoDatabase);
     }
 
     @Test
@@ -609,23 +626,32 @@ public class MigraMongoTest {
     }
 
     @Test
-    public void aMongoMigrationScriptShouldBeInIncludedInInitialMigrationByDefault() {
+    public void aMongoMigrationScriptShouldBeInIncludedInInitialMigrationByDefault() throws Exception {
         //given
-        final MongoMigrationScript emptyMongoMigrationScript = new MongoMigrationScript() {
+        final InitialMongoMigrationScript mockInitialScript = mockInitialScript("1");
+        final MongoMigrationScript migrationScript = new MongoMigrationScript() {
+            private final MigrationInfo migrationInfo = new MigrationInfo("1", "2");
 
             @Override
             public MigrationInfo getMigrationInfo() {
-                //not needed
-                return null;
+                return migrationInfo;
             }
 
             @Override
-            public void migrate(MongoDatabase database) throws Exception {
+            public void migrate(MongoDatabase database) {
                 //not needed
             }
         };
-        //when - then
-        assertThat(emptyMongoMigrationScript.includedInInitialMigrationScript(), is(true));
+        when(lookupService.findInitialScript()).thenReturn(mockInitialScript);
+        when(lookupService.findMongoScripts()).thenReturn(List.of(migrationScript));
+        // when
+        final MigraMongoStatus status = migraMongo.migrate();
+        // then
+        assertNull(migrationScript.includedInInitialMigrationScript());
+        assertThat(status.status, is(MigrationStatus.OK));
+        verify(migEntryService).insertMigrationStatusSkipped(migrationScript.getMigrationInfo());
+        assertThat(status.migrationsApplied, hasSize(2));
+        verify(mockInitialScript).migrate(mongoDatabase);
     }
 
     @Test
@@ -749,15 +775,13 @@ public class MigraMongoTest {
     }
 
     private MongoMigrationScript mockMongoScript(String from, String to) {
-        return mockMongoScript(from, to, (Boolean) null);
+        return mockMongoScript(from, to, false);
     }
 
     private MongoMigrationScript mockMongoScript(String from, String to, Boolean includedInInitial) {
         final MongoMigrationScript script = mock(MongoMigrationScript.class);
         when(script.getMigrationInfo()).thenReturn(new MigrationInfo(from, to));
-        if (includedInInitial != null) {
-            when(script.includedInInitialMigrationScript()).thenReturn(includedInInitial);
-        }
+        lenient().when(script.includedInInitialMigrationScript()).thenReturn(includedInInitial);
         return script;
     }
 
