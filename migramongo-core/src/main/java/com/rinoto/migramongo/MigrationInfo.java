@@ -9,7 +9,6 @@ public class MigrationInfo {
     private String module;
     private String info;
 
-    @Deprecated(forRemoval = true)
     public MigrationInfo(String fromVersion, String toVersion) {
         this.fromVersion = fromVersion;
         this.toVersion = toVersion;
@@ -24,6 +23,14 @@ public class MigrationInfo {
         }
         if (fromVersion == toVersion) {
             throw new IllegalArgumentException(String.format("migration versions from '%s' and to '%s' have to be different", fromVersion, toVersion));
+        }
+    }
+
+    protected MigrationInfo(int initialVersion) {
+        this(Integer.toString(initialVersion), Integer.toString(initialVersion));
+
+        if (initialVersion < 0) {
+            throw new IllegalArgumentException(String.format("migration version '%s' has to be positive", initialVersion));
         }
     }
 

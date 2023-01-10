@@ -8,6 +8,10 @@ public class InitialMigrationInfo extends MigrationInfo {
 		super(initialVersion, initialVersion);
 	}
 
+	public InitialMigrationInfo(int initialVersion) {
+		super(initialVersion);
+	}
+
 	@Override
 	public MigrationType getMigrationType() {
 		return MigrationType.INITIAL;
