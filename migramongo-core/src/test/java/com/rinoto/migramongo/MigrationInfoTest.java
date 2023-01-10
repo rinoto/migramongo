@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class MigrationInfoTest {
-     @Test
+    @Test
     void shouldBeAbleToCreateMigrationInfo() {
          var migrationInfo = new MigrationInfo(0, 1);
 
