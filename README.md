@@ -13,6 +13,9 @@ The biggest different with respect to other existing tools is that Migramongo fo
 
 You can use `migramongo` [with](#migraMongoWithSpring) or [without](#migraMongoWithoutSpring) Spring.
 
+### Java version compatibility
+* Versions up to 1.17 are compatible with Java 11
+* From version 2.0, you need at least Java 17
 
 ### <a name="migraMongoWithSpring"></a>Using migramongo with Spring
 
@@ -26,7 +29,7 @@ Add the `migramongo-spring` dependency to your project:
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring</artifactId>
-    <version>1.17</version>
+    <version>2.0</version>
 </dependency>
 ```
 #### Configuration
@@ -199,7 +202,7 @@ In order to use the controllers, you will need the `migramongo-spring-web` depen
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-spring-web</artifactId>
-    <version>1.17</version>
+    <version>2.0</version>
 </dependency>
 ```
 
@@ -212,7 +215,7 @@ It's basically the same as with Spring, you just need to change
 <dependency>
     <groupId>com.github.rinoto.mongo</groupId>
     <artifactId>migramongo-reflections</artifactId>
-    <version>1.17</version>
+    <version>2.0</version>
 </dependency>
 ```
 
