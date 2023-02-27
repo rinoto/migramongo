@@ -16,7 +16,7 @@ public class MigrationRun {
         this.createdAt = new Date();
     }
 
-    public MigrationRun complete(MigrationStatus status, String statusMessage) {
+    public MigrationRun update(MigrationStatus status, String statusMessage) {
         this.status = status;
         this.statusMessage = statusMessage;
         this.updatedAt = new Date();

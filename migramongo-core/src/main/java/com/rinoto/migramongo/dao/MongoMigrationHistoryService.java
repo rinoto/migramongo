@@ -3,9 +3,7 @@ package com.rinoto.migramongo.dao;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
@@ -164,7 +162,8 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         migEntryDoc.put("repaired", migEntry.isRepaired());
         migEntryDoc.put("skipped", migEntry.isSkipped());
         fillMigrationRunDataIntoDocument(migEntryDoc, migEntry);
-        //there cannot be any MigrationRun when mapping a migrationEntry to a Doc, because a MigrationRun can only be added via #addMigrationRun
+        migEntryDoc.put("reruns", Optional.ofNullable(migEntry.getReruns()).map(entries ->
+                entries.stream().map(this::mapMigRunToDoc).toList()).orElse(null));
         return migEntryDoc;
     }
 
@@ -230,17 +229,37 @@ public class MongoMigrationHistoryService implements MigrationHistoryService {
         if (migEntryDoc == null) {
             return null;
         }
-        final Document migRunDoc = mapMigRunToDoc(migRun);
-        @SuppressWarnings("unchecked")
-        List<Document> reRunsList = migEntryDoc.get("reruns", List.class);
-        if (reRunsList == null) {
-            reRunsList = new ArrayList<Document>();
-        }
-        reRunsList.add(migRunDoc);
-        migEntryDoc.put("reruns", reRunsList);
+        var loadedMigEntry = mapMigrationEntry(migEntryDoc);
 
-        replaceMigrationEntry(migEntry, migEntryDoc);
-        return mapMigrationEntry(migEntryDoc);
+        var reruns = Optional.ofNullable(loadedMigEntry.getReruns()).orElse(new ArrayList<>());
+        reruns.add(migRun);
+        loadedMigEntry.setReruns(reruns);
+        loadedMigEntry.setStatus(migRun.getStatus());
+        loadedMigEntry.setStatusMessage(migRun.getStatusMessage());
+
+        replaceMigrationEntry(loadedMigEntry, mapMigEntryToDocument(loadedMigEntry));
+
+        return loadedMigEntry;
     }
 
+    @Override
+    public MigrationEntry setLastReRunToFinished(MigrationEntry migrationEntry) {
+        var successStatusMessage = "Migration re-run completed successfully";
+        migrationEntry.getReruns().get(migrationEntry.getReruns().size() - 1)
+                .update(MigrationStatus.OK, successStatusMessage);
+        migrationEntry.setStatusMessage(successStatusMessage);
+
+        return setMigrationStatusToFinished(migrationEntry);
+    }
+
+    @Override
+    public MigrationEntry setLastReRunToFailed(MigrationEntry migrationEntry, Exception e) {
+        var errorStatusMessage = "Migration re-run failed with: " + e.getMessage();
+        migrationEntry.getReruns().get(migrationEntry.getReruns().size() - 1)
+                .update(MigrationStatus.ERROR, errorStatusMessage);
+
+        migrationEntry.setStatus(MigrationStatus.ERROR);
+        migrationEntry.setStatusMessage(errorStatusMessage);
+        return insertMigrationEntry(migrationEntry);
+    }
 }

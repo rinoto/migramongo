@@ -1,5 +1,6 @@
 package com.rinoto.migramongo;
 
+import static java.util.Collections.emptyList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -19,9 +20,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.mockito.*;
 
 import com.mongodb.client.MongoDatabase;
 import com.rinoto.migramongo.MigraMongoStatus.MigrationStatus;
@@ -342,7 +341,7 @@ public class MigraMongoTest {
         // -- last entry in db
         mockLastEntry("4", "5");
         // - mig scripts provided
-        when(lookupService.findMongoScripts()).thenReturn(Collections.emptyList());
+        when(lookupService.findMongoScripts()).thenReturn(emptyList());
         // when
         final MigraMongoStatus status = migraMongo.migrate();
         // then
@@ -728,6 +727,9 @@ public class MigraMongoTest {
             entry.setReruns(Arrays.asList(migRun));
             return entry;
         });
+        var entryWithRun = createMigrationEntry("1", "2", MigrationStatus.OK);
+        entryWithRun.setReruns(List.of(new MigrationRun().update(MigrationStatus.OK, "Migration re-run completed successfully")));
+        when(migEntryService.setLastReRunToFinished(entry)).thenReturn(entryWithRun);
 
         // when
         final MigraMongoStatus status = migraMongo.rerun("1", "2");
@@ -746,7 +748,7 @@ public class MigraMongoTest {
         assertThat(migrationApplied.getReruns(), hasSize(1));
         final MigrationRun migrationRun = migrationApplied.getReruns().get(0);
         assertThat(migrationRun.status, is(MigrationStatus.OK));
-        assertThat(migrationRun.statusMessage, is("Migration completed correctly"));
+        assertThat(migrationRun.statusMessage, is("Migration re-run completed successfully"));
         verify(mongoScript).migrate(mongoDatabase);
     }
 
@@ -774,6 +776,16 @@ public class MigraMongoTest {
     }
 
     @Test
+    public void shouldFailToReRunIfLockCanNotBeAcquired() throws Exception {
+        when(lockService.acquireLock()).thenReturn(false);
+
+        var status = migraMongo.rerun("1", "2");
+
+        assertThat(status.status, is(MigrationStatus.LOCK_NOT_ACQUIRED));
+        assertThat(status.migrationsApplied, is(emptyList()));
+    }
+
+    @Test
     public void shouldReleaseLockIfMigrationRerunFails() throws Exception {
         // given
         final MigrationEntry entry = mockEntry("1", "2", MigrationStatus.OK);
@@ -797,7 +809,8 @@ public class MigraMongoTest {
     public void shouldAddRerunEntryIfScriptFails() throws Exception {
         // given
         final MigrationEntry entry = mockEntry("1", "2", MigrationStatus.OK);
-        final MongoMigrationScript mongoScript = mockMongoScript("1", "2", new RuntimeException("whatever exception"));
+        final Exception exception = new RuntimeException("whatever exception");
+        final MongoMigrationScript mongoScript = mockMongoScript("1", "2", exception);
         final List<MongoMigrationScript> mongoScripts = Arrays.asList(mongoScript);
         when(lookupService.findMongoScripts()).thenReturn(mongoScripts);
         when(migEntryService.addRunToMigrationEntry(eq(entry), any(MigrationRun.class))).thenAnswer(i -> {
@@ -805,6 +818,12 @@ public class MigraMongoTest {
             entry.setReruns(Arrays.asList(migRun));
             return entry;
         });
+        var entryWithRun = createMigrationEntry("1", "2", MigrationStatus.ERROR);
+        entryWithRun.setReruns(List.of(new MigrationRun().update(
+                MigrationStatus.ERROR,
+                "Migration re-run failed with: whatever exception")));
+        when(migEntryService.setLastReRunToFailed(eq(entry), eq(exception)))
+                .thenReturn(entryWithRun);
 
         // when
         final MigraMongoStatus status = migraMongo.rerun("1", "2");
@@ -822,8 +841,37 @@ public class MigraMongoTest {
         assertThat(migrationApplied.getReruns(), hasSize(1));
         final MigrationRun migrationRun = migrationApplied.getReruns().get(0);
         assertThat(migrationRun.status, is(MigrationStatus.ERROR));
-        assertThat(migrationRun.statusMessage, is("whatever exception"));
+        assertThat(migrationRun.statusMessage, is("Migration re-run failed with: whatever exception"));
         verify(mongoScript).migrate(mongoDatabase);
+    }
+
+    @Test
+    public void shouldSetInProgressStatusDuringMigrationRerun() throws Exception {
+        // given
+        final MigrationEntry entry = mockEntry("1", "2", MigrationStatus.OK);
+        final MongoMigrationScript mongoScript = mockMongoScript("1", "2", (Boolean) null);
+        final List<MongoMigrationScript> mongoScripts = Arrays.asList(mongoScript);
+        when(lookupService.findMongoScripts()).thenReturn(mongoScripts);
+        when(migEntryService.addRunToMigrationEntry(eq(entry), any(MigrationRun.class))).thenAnswer(i -> {
+            final MigrationRun migRun = (MigrationRun) i.getArguments()[1];
+            entry.setReruns(Arrays.asList(migRun));
+            return entry;
+        });
+        ArgumentCaptor<MigrationRun> migrationRunArgumentCaptor = ArgumentCaptor.forClass(MigrationRun.class);
+        doAnswer((answer) -> {
+            verify(migEntryService).addRunToMigrationEntry(any(), migrationRunArgumentCaptor.capture());
+            return null;
+        }).when(mongoScript).migrate(any(MongoDatabase.class));
+
+        // when
+        final MigraMongoStatus status = migraMongo.rerun("1", "2");
+
+        // then
+        final MigrationRun inProgressRun = migrationRunArgumentCaptor.getValue();
+        assertThat(inProgressRun.getStatus(), is(MigrationStatus.IN_PROGRESS));
+        assertThat(inProgressRun.getStatusMessage(), is("Migration re-run is in progress"));
+
+        assertThat(status.status, is(MigrationStatus.OK));
     }
 
     private MigrationEntry mockEntry(String fromVersion, String toVersion, MigrationStatus status) {
