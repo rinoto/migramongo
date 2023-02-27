@@ -3,6 +3,7 @@ package com.rinoto.migramongo;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -88,22 +89,17 @@ public class MigraMongo {
      * @return the status
      */
     public MigraMongoStatus migrate() {
-        final boolean lockAcquired = lockService.acquireLock();
-        if ( !lockAcquired) {
-            return MigraMongoStatus.lockNotAcquired();
-        }
-        try {
-            final List<MongoMigrationScript> migrationScriptsToApply = findMigrationScriptsToApply();
-            return migrate(migrationScriptsToApply);
-        } catch (MongoMigrationException e) {
-            logger.error("Migration Exception caught while migrating", e);
-            return e.getStatus();
-        } catch (Exception e) {
-            logger.error("Unknown Exception caught while migrating", e);
-            return MigraMongoStatus.error(e.getMessage());
-        } finally {
-            lockService.releaseLock();
-        }
+        return withLock(() -> {
+            try {
+                return migrate(findMigrationScriptsToApply());
+            } catch (MongoMigrationException e) {
+                logger.error("Migration Exception caught while migrating", e);
+                return e.getStatus();
+            } catch (Exception e) {
+                logger.error("Unknown Exception caught while migrating", e);
+                return MigraMongoStatus.error(e.getMessage());
+            }
+        });
     }
 
     /**
@@ -253,6 +249,10 @@ public class MigraMongo {
      * @return status
      */
     public MigraMongoStatus repair(String fromVersion, String toVersion) {
+        return withLock(() -> repairMigration(fromVersion, toVersion));
+    }
+
+    private MigraMongoStatus repairMigration(String fromVersion, String toVersion) {
         final MigrationEntry migrationEntry = migrationHistoryService.findMigration(fromVersion, toVersion);
         if (migrationEntry == null) {
             return MigraMongoStatus
@@ -287,14 +287,7 @@ public class MigraMongo {
     }
 
     public MigraMongoStatus rerun(String fromVersion, String toVersion) {
-        if (!lockService.acquireLock()) {
-            return MigraMongoStatus.lockNotAcquired();
-        }
-        try {
-            return rerunMigration(fromVersion, toVersion);
-        } finally {
-            lockService.releaseLock();
-        }
+        return withLock(() -> rerunMigration(fromVersion, toVersion));
     }
 
     private MigraMongoStatus rerunMigration(String fromVersion, String toVersion) {
@@ -446,4 +439,14 @@ public class MigraMongo {
         return StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toList());
     }
 
+    private MigraMongoStatus withLock(Supplier<MigraMongoStatus> action) {
+        if (!lockService.acquireLock()) {
+            return MigraMongoStatus.lockNotAcquired();
+        }
+        try {
+            return action.get();
+        } finally {
+            lockService.releaseLock();
+        }
+    }
 }

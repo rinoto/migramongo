@@ -392,6 +392,29 @@ public class MigraMongoTest {
     }
 
     @Test
+    public void shouldRequireAndReleaseLockDuringRepair() throws Exception {
+        // given
+        MigrationEntry migrationEntry = mockEntry("4", "5", MigrationStatus.IN_PROGRESS);
+        when(lockService.acquireLock()).thenReturn(true);
+        // when
+        final MigraMongoStatus status = migraMongo.repair("4", "5");
+        // then
+        assertThat(status.status, is(MigrationStatus.OK));
+        verify(lockService).acquireLock();
+        verify(lockService).releaseLock();
+    }
+
+    @Test
+    public void shouldFailToRepairIfLockCanNotBeAcquired() throws Exception {
+        // given
+        when(lockService.acquireLock()).thenReturn(false);
+        // when
+        final MigraMongoStatus status = migraMongo.repair("4", "5");
+        // then
+        assertThat(status.status, is(MigrationStatus.LOCK_NOT_ACQUIRED));
+    }
+
+    @Test
     public void shouldNotRepairEntryInOkStatus() throws Exception {
         // given
         mockEntry("4", "5", MigrationStatus.OK);
