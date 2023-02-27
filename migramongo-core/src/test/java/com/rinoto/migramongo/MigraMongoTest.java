@@ -728,6 +728,49 @@ public class MigraMongoTest {
     }
 
     @Test
+    public void shouldAcquireAndReleaseLockDuringMigrationRerun() throws Exception {
+        // given
+        final MigrationEntry entry = mockEntry("1", "2", MigrationStatus.OK);
+        final MongoMigrationScript mongoScript = mockMongoScript("1", "2", (Boolean) null);
+        final List<MongoMigrationScript> mongoScripts = Arrays.asList(mongoScript);
+        when(lookupService.findMongoScripts()).thenReturn(mongoScripts);
+        when(migEntryService.addRunToMigrationEntry(eq(entry), any(MigrationRun.class))).thenAnswer(i -> {
+            final MigrationRun migRun = (MigrationRun) i.getArguments()[1];
+            entry.setReruns(Arrays.asList(migRun));
+            return entry;
+        });
+
+        doAnswer((answer) -> {
+            verify(lockService).acquireLock();
+            return null;
+        }).when(mongoScript).migrate(any(MongoDatabase.class));
+
+        migraMongo.rerun("1", "2");
+
+        verify(lockService).releaseLock();
+    }
+
+    @Test
+    public void shouldReleaseLockIfMigrationRerunFails() throws Exception {
+        // given
+        final MigrationEntry entry = mockEntry("1", "2", MigrationStatus.OK);
+        final MongoMigrationScript mongoScript = mockMongoScript("1", "2", (Boolean) null);
+        final List<MongoMigrationScript> mongoScripts = Arrays.asList(mongoScript);
+        when(lookupService.findMongoScripts()).thenReturn(mongoScripts);
+        when(migEntryService.addRunToMigrationEntry(eq(entry), any(MigrationRun.class))).thenAnswer(i -> {
+            final MigrationRun migRun = (MigrationRun) i.getArguments()[1];
+            entry.setReruns(Arrays.asList(migRun));
+            return entry;
+        });
+
+        doThrow(new RuntimeException("")).when(mongoScript).migrate(any(MongoDatabase.class));
+
+        migraMongo.rerun("1", "2");
+
+        verify(lockService).releaseLock();
+    }
+
+    @Test
     public void shouldAddRerunEntryIfScriptFails() throws Exception {
         // given
         final MigrationEntry entry = mockEntry("1", "2", MigrationStatus.OK);

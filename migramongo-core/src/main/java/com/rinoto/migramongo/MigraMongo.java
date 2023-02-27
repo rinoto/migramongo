@@ -287,6 +287,17 @@ public class MigraMongo {
     }
 
     public MigraMongoStatus rerun(String fromVersion, String toVersion) {
+        if (!lockService.acquireLock()) {
+            return MigraMongoStatus.lockNotAcquired();
+        }
+        try {
+            return rerunMigration(fromVersion, toVersion);
+        } finally {
+            lockService.releaseLock();
+        }
+    }
+
+    private MigraMongoStatus rerunMigration(String fromVersion, String toVersion) {
         final MigrationEntry migrationEntry = migrationHistoryService.findMigration(fromVersion, toVersion);
         if (migrationEntry == null) {
             return MigraMongoStatus
