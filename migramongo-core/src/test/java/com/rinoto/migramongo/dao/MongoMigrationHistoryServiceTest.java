@@ -278,7 +278,7 @@ public class MongoMigrationHistoryServiceTest {
     public void shouldAddRerunToMigEntry() throws Exception {
         // given
         final MigrationEntry migEntry = addMigration(new MigrationInfo("1", "2"));
-        final MigrationRun migRun = new MigrationRun().complete(MigrationStatus.OK, "it's ok");
+        final MigrationRun migRun = new MigrationRun().update(MigrationStatus.OK, "it's ok");
 
         // when
         migrationHistoryService.addRunToMigrationEntry(migEntry, migRun);
@@ -294,12 +294,59 @@ public class MongoMigrationHistoryServiceTest {
         final MigrationEntry migEntry = new MigrationEntry();
         migEntry.setFromVersion("1");
         migEntry.setToVersion("2");
-        final MigrationRun migRun = new MigrationRun().complete(MigrationStatus.OK, "it's ok");
+        final MigrationRun migRun = new MigrationRun().update(MigrationStatus.OK, "it's ok");
 
         // when
         final MigrationEntry migEntryWithRuns = migrationHistoryService.addRunToMigrationEntry(migEntry, migRun);
 
         assertThat(migEntryWithRuns, nullValue());
+    }
+
+    @Test
+    public void shouldUpdateEntryStatusIfRunIsAdded() throws Exception {
+        // given
+        final MigrationEntry migEntry = addMigration(new MigrationInfo("1", "2"));
+        final MigrationRun migRun = new MigrationRun().update(MigrationStatus.IN_PROGRESS, "in progress");
+
+        // when
+        final MigrationEntry migEntryWithRuns = migrationHistoryService.addRunToMigrationEntry(migEntry, migRun);
+
+        assertThat(migEntryWithRuns.getStatus(), is(MigrationStatus.IN_PROGRESS));
+        assertThat(migEntryWithRuns.getStatusMessage(), is("in progress"));
+    }
+
+    @Test
+    public void shouldUpdateReRunStatusOnSuccess() throws Exception {
+        // given
+        final MigrationEntry migEntry = addMigration(new MigrationInfo("1", "2"));
+        final MigrationRun migRun = new MigrationRun().update(MigrationStatus.IN_PROGRESS, "in progress");
+        final MigrationEntry migEntryWithRuns = migrationHistoryService.addRunToMigrationEntry(migEntry, migRun);
+
+        // when
+        var migEntryFinished = migrationHistoryService.setLastReRunToFinished(migEntryWithRuns);
+
+        assertThat(migEntryFinished.getStatus(), is(MigrationStatus.OK));
+        assertThat(migEntryFinished.getStatusMessage(), is("Migration re-run completed successfully"));
+        assertThat(migEntryFinished.getReruns(), hasSize(1));
+        assertThat(migEntryFinished.getReruns().get(0).getStatus(), is(MigrationStatus.OK));
+        assertThat(migEntryFinished.getReruns().get(0).getStatusMessage(), is("Migration re-run completed successfully"));
+    }
+
+    @Test
+    public void shouldUpdateReRunStatusOnError() throws Exception {
+        // given
+        final MigrationEntry migEntry = addMigration(new MigrationInfo("1", "2"));
+        final MigrationRun migRun = new MigrationRun().update(MigrationStatus.IN_PROGRESS, "in progress");
+        final MigrationEntry migEntryWithRuns = migrationHistoryService.addRunToMigrationEntry(migEntry, migRun);
+
+        // when
+        var migEntryFinished = migrationHistoryService.setLastReRunToFailed(migEntryWithRuns, new RuntimeException("error"));
+
+        assertThat(migEntryFinished.getStatus(), is(MigrationStatus.ERROR));
+        assertThat(migEntryFinished.getStatusMessage(), is("Migration re-run failed with: error"));
+        assertThat(migEntryFinished.getReruns(), hasSize(1));
+        assertThat(migEntryFinished.getReruns().get(0).getStatus(), is(MigrationStatus.ERROR));
+        assertThat(migEntryFinished.getReruns().get(0).getStatusMessage(), is("Migration re-run failed with: error"));
     }
 
     private void assertMigrationRun(MigrationRun migrationRun, MigrationRun migRun) {
@@ -314,9 +361,9 @@ public class MongoMigrationHistoryServiceTest {
     public void shouldAddMultipleRerunsToMigEntry() throws Exception {
         // given
         final MigrationEntry migEntry = addMigration(new MigrationInfo("1", "2"));
-        final MigrationRun migRun0 = new MigrationRun().complete(MigrationStatus.OK, "it's ok");
-        final MigrationRun migRun1 = new MigrationRun().complete(MigrationStatus.ERROR, "it's not ok");
-        final MigrationRun migRun2 = new MigrationRun().complete(MigrationStatus.OK, "it's ok again");
+        final MigrationRun migRun0 = new MigrationRun().update(MigrationStatus.OK, "it's ok");
+        final MigrationRun migRun1 = new MigrationRun().update(MigrationStatus.ERROR, "it's not ok");
+        final MigrationRun migRun2 = new MigrationRun().update(MigrationStatus.OK, "it's ok again");
 
         // when
         migrationHistoryService.addRunToMigrationEntry(migEntry, migRun0);

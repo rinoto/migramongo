@@ -80,4 +80,7 @@ public interface MigrationHistoryService {
 
     MigrationEntry addRunToMigrationEntry(MigrationEntry entry, MigrationRun run);
 
+    MigrationEntry setLastReRunToFinished(MigrationEntry migrationEntry);
+
+    MigrationEntry setLastReRunToFailed(MigrationEntry migrationEntry, Exception e);
 }
