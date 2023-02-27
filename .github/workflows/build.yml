@@ -12,5 +12,5 @@ jobs:
           distribution: 'temurin'
       - name: Build with Maven
         run: mvn install -Dgpg.skip
-      - name: Coverage Report
-        run: mvn jacoco:report coveralls:report
+#      - name: Coverage Report
+#        run: mvn jacoco:report coveralls:report
