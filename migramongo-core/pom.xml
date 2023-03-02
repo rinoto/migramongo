@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.github.rinoto.mongo</groupId>
 		<artifactId>migramongo-parent</artifactId>
-		<version>${revision}</version>
+		<version>x.y.z</version>
 	</parent>
 	<artifactId>migramongo-core</artifactId>
 	<packaging>jar</packaging>

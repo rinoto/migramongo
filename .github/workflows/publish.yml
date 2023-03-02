@@ -21,8 +21,10 @@ jobs:
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.OSSRH_GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
+      - name: Update Version
+        run: mvn versions:set -DnewVersion=${GITHUB_REF#refs/*/}
       - name: Publish package
-        run: mvn --batch-mode deploy -Drevision=${GITHUB_REF#refs/*/}
+        run: mvn --batch-mode deploy
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
