@@ -43,7 +43,7 @@
 		<assertj.version>3.24.2</assertj.version>
 		<junit.version>5.9.2</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
-		<logback.verion>1.4.5</logback.verion>
+		<logback.verion>1.4.12</logback.verion>
 		<embedmongo.version>3.0.0</embedmongo.version>
 		<classgraph.version>4.8.154</classgraph.version>
 	</properties>
